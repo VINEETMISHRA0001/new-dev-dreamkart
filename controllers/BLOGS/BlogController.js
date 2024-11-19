@@ -1,6 +1,5 @@
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Article = require('../../models/BLOGS/BlogModel');
 
 // Cloudinary Configuration
@@ -10,26 +9,37 @@ cloudinary.config({
   api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4', // Replace with your Cloudinary API secret
 });
 
-// Multer Storage Configuration for Cloudinary
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'blog_images', // Optional: The folder where images will be stored in Cloudinary
-    allowedFormats: ['jpg', 'jpeg', 'png', 'gif'],
-    transformation: [{ width: 500, height: 500, crop: 'limit' }],
-  },
+// Multer Configuration (file stored temporarily in memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
 });
-
-const upload = multer({ storage: storage });
 
 // Create a new article with image upload
 exports.createArticle = [
-  // Upload image using Multer and Cloudinary
+  // Parse form data and image upload
   upload.single('imageUrl'), // 'imageUrl' should be the name of the form field for image upload
   async (req, res) => {
     try {
-      // If the image is uploaded, Cloudinary will return a URL for it
-      const imageUrl = req.file ? req.file.path : null;
+      let imageUrl = null;
+
+      // Upload the file to Cloudinary if provided
+      if (req.file) {
+        const result = await cloudinary.uploader
+          .upload_stream(
+            {
+              folder: 'blog_images',
+              transformation: [{ width: 500, height: 500, crop: 'limit' }],
+            },
+            (error, uploadResult) => {
+              if (error) throw new Error('Cloudinary upload failed');
+              return uploadResult;
+            }
+          )
+          .end(req.file.buffer);
+
+        imageUrl = result.secure_url; // Get secure URL from Cloudinary
+      }
 
       // Create the article with Cloudinary image URL
       const article = new Article({
@@ -50,6 +60,8 @@ exports.createArticle = [
     }
   },
 ];
+
+// Other CRUD operations remain unchanged...
 
 // Get all articles
 exports.getArticles = async (req, res) => {

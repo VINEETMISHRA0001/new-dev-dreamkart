@@ -1,7 +1,6 @@
-const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const multer = require("multer");
-const path = require("path");
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+const path = require('path');
 
 // Configure Cloudinary with your credentials
 cloudinary.config({
@@ -10,21 +9,9 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET, // Add your Cloudinary API Secret
 });
 
-// Set up Cloudinary storage with multer
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "categories", // Cloudinary folder where images will be stored
-    allowed_formats: ["jpeg", "jpg", "png", "gif"], // Allowed file formats
-    public_id: (req, file) => {
-      return file.fieldname + "-" + Date.now(); // Public ID for the uploaded image
-    },
-  },
-});
-
-// Initialize multer with the Cloudinary storage and file size limit
-const upload = multer({
-  storage: storage,
+// Multer configuration: In-memory storage and file type validation
+const multerConfig = multer({
+  storage: multer.memoryStorage(), // Store files in memory temporarily
   limits: { fileSize: 1000000 }, // 1 MB limit
   fileFilter: function (req, file, cb) {
     const fileTypes = /jpeg|jpg|png|gif/;
@@ -36,9 +23,37 @@ const upload = multer({
     if (mimeType && extname) {
       return cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed!"));
+      cb(new Error('Only image files are allowed!'));
     }
   },
 });
+
+// Cloudinary upload logic
+const uploadToCloudinary = async (fileBuffer, folder) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        {
+          folder: folder, // Specify folder in Cloudinary
+          transformation: [{ width: 500, height: 500, crop: 'limit' }], // Optional transformations
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result.secure_url); // Return the secure URL of the uploaded image
+          }
+        }
+      )
+      .end(fileBuffer);
+  });
+};
+
+// Combined Export: Middleware for multer and helper for Cloudinary
+const upload = multerConfig.single('image'); // 'image' is the field name in the form
+
+upload.cloudinaryUpload = async (fileBuffer, folder = 'default') => {
+  return uploadToCloudinary(fileBuffer, folder);
+};
 
 module.exports = upload;
