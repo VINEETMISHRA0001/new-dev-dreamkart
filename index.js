@@ -66,13 +66,13 @@ app.use(
   })
 );
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello vercel' });
-});
 // Serve the uploads folder as static files
 app.use('/uploads', express.static('public')); // Adjust the path as necessary
 
 // USER Routes
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello vercel' });
+});
 app.use('/api/v1/protect/auth', authRoutes);
 app.use('/api/v1/user', profileRoutes);
 app.use('/api/v1/address', addressRoutes);
