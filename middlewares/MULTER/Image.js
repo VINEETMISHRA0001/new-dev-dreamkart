@@ -9,8 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET, // Add your Cloudinary API Secret
 });
 
-// Multer configuration: In-memory storage and file type validation
-const multerConfig = multer({
+// Initialize multer with in-memory storage and file size limit
+const upload = multer({
   storage: multer.memoryStorage(), // Store files in memory temporarily
   limits: { fileSize: 1000000 }, // 1 MB limit
   fileFilter: function (req, file, cb) {
@@ -28,13 +28,13 @@ const multerConfig = multer({
   },
 });
 
-// Cloudinary upload logic
+// Function to handle the Cloudinary upload
 const uploadToCloudinary = async (fileBuffer, folder) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
         {
-          folder: folder, // Specify folder in Cloudinary
+          folder: folder, // The folder in Cloudinary to store the image
           transformation: [{ width: 500, height: 500, crop: 'limit' }], // Optional transformations
         },
         (error, result) => {
@@ -49,11 +49,4 @@ const uploadToCloudinary = async (fileBuffer, folder) => {
   });
 };
 
-// Combined Export: Middleware for multer and helper for Cloudinary
-const upload = multerConfig.single('image'); // 'image' is the field name in the form
-
-upload.cloudinaryUpload = async (fileBuffer, folder = 'default') => {
-  return uploadToCloudinary(fileBuffer, folder);
-};
-
-module.exports = upload;
+module.exports = { upload, uploadToCloudinary };
