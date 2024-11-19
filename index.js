@@ -66,6 +66,9 @@ app.use(
   })
 );
 
+app.get('/', (req, res) => {
+  res.json({ message: 'Hello vercel' });
+});
 // Serve the uploads folder as static files
 app.use('/uploads', express.static('public')); // Adjust the path as necessary
 
