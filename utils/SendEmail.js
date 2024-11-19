@@ -1,11 +1,11 @@
-const nodemailer = require("nodemailer");
-require("dotenv").config();
-const path = require("path"); // To handle file paths
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+const path = require('path'); // To handle file paths
 
 // Function to send an email
 const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
-    service: "Gmail",
+    service: 'Gmail',
     auth: {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
@@ -50,20 +50,20 @@ const sendEmail = async (options) => {
     to: options.email,
     subject: options.subject,
     html: htmlTemplate,
-    attachments: [
-      {
-        filename: "logo.png",
-        path: path.join(__dirname, "./../assets/logo.png"),
-        cid: "logo",
-      },
-    ],
+    // attachments: [
+    //   {
+    //     filename: "logo.png",
+    //     path: path.join(__dirname, "./../assets/logo.png"),
+    //     cid: "logo",
+    //   },
+    // ],
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully");
+    console.log('Email sent successfully');
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error('Error sending email:', error);
   }
 };
 
