@@ -2,15 +2,19 @@ const express = require('express');
 const dotenv = require('dotenv');
 const http = require('http');
 const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const path = require('path');
-const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const nodemailer = require('nodemailer');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/DB');
+const AppError = require('./utils/AppError');
+const globalErrorHandler = require('./controllers/ErrorController');
+
+// Import routes
 const authRoutes = require('./routes/AuthRoutes');
 const profileRoutes = require('./routes/ProfileRoutes');
 const addressRoutes = require('./routes/AddressRoutes');
-const globalErrorHandler = require('./controllers/ErrorController');
 const adminRoutes = require('./routes/ADMIN/AdminRoutes');
 const subAdminRoutes = require('./routes/ADMIN/SubadminRoutes');
 const categoryRoutes = require('./routes/CATEGORIES/CategoryRoutes');
@@ -23,56 +27,51 @@ const wishlistRoutes = require('./routes/WISHLIST/WishlistRoutes');
 const bannerRoutes = require('./routes/BANNER/BannerRoutes');
 const couponRoutes = require('./routes/COUPONS/CouponRoutes');
 const recentRoutes = require('./routes/RECENTLY VIEWED/RecentlyViewedRoutes');
-const AppError = require('./utils/AppError');
 const socials = require('./routes/SocialRoutes');
-const bulkImageRoutes = require('./routes/ImageBulkRoutes');
+const bulkImageRoutes = require('./routes/ImageRoutes');
 const paymentsRoutes = require('./routes/PaymentRoutes');
 const discountRoutes = require('./routes/DiscountRoutes');
 const blogRoutes = require('./routes/BLOGS/BlogRoutes');
 const invoiceRoutes = require('./routes/InvoiceRoutes');
 const pagesRoutes = require('./routes/PageRoutes');
-const Chat = require('./routes/CHATS/ChatRoutes');
+const chatRoutes = require('./routes/CHATS/ChatRoutes');
 const thirdCategoryRoutes = require('./routes/CATEGORIES/ThirdCategoryRoutes');
+const seoRoutes = require('./routes/Seo');
+const User = require('./models/UserSchema');
 
+// Environment configuration
 dotenv.config();
 connectDB();
 
 const app = express();
 const server = http.createServer(app);
 
-const io = require('socket.io')(server, {
-  cors: { origin: '*' },
-});
-
 // Security middleware
 app.use(helmet());
 
-// // Limit request rate
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 1000, // Limit each IP to 100 requests per windowMs
-// });
-// app.use(limiter);
-
-// Middleware
-app.use(express.json({ limit: '10kb' })); // Limit JSON body size
+// General middleware
+app.use(express.json({ limit: '10mb' })); // Limit JSON body size
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'],
-
+    origin: [
+      'https://admin.dreamkart.world',
+      'http://localhost:5173',
+      'http://localhost:5174',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   })
 );
 
-// Serve the uploads folder as static files
-app.use('/uploads', express.static('public')); // Adjust the path as necessary
+// Serve static files
+// app.use('/uploads', express.static(path.join(__dirname, 'public')));
 
-// USER Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'Hello vercel' });
-});
+// Rate limiter (optional for security)
+
+// Socket.IO handling
+
+// API Routes
 app.use('/api/v1/protect/auth', authRoutes);
 app.use('/api/v1/user', profileRoutes);
 app.use('/api/v1/address', addressRoutes);
@@ -87,38 +86,7 @@ app.use('/api/v1/popular', socials);
 app.use('/api/v1/discount', discountRoutes);
 app.use('/api/v1/invoice', invoiceRoutes);
 app.use('/api/v1/manage-pages', pagesRoutes);
-
-// chat Routes
-
-app.use('/api/v1/chats', Chat);
-
-io.on('connection', (socket) => {
-  console.log('Client connected' + socket.id);
-
-  // handle user messages
-
-  socket.on('userMessage', (data) => {
-    console.log('Message from user', data.message);
-
-    const newMessage = new Chat({
-      userId: data.userId,
-      message: data.message,
-      sender: 'user',
-    });
-
-    newMessage.save();
-
-    socket.emit('botMessage', {
-      message: 'Thanks For your message! we"ll  get back to you soon.',
-    });
-  });
-
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
-  });
-});
-
-// ADMIN ROUTES
+app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/admin/auth', adminRoutes);
 app.use('/api/v1/admin/subadmin', subAdminRoutes);
 app.use('/api/v1/categories', categoryRoutes);
@@ -128,16 +96,58 @@ app.use('/api/v1/products', productsRoutes);
 app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1/banners', bannerRoutes);
 app.use('/api/v1/images/upload', bulkImageRoutes);
+app.use('/api/v1/seo', seoRoutes);
 
-app.all('*', (req, res, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+// Announcement email endpoint
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
-// Global error handling middleware
-app.use(globalErrorHandler);
+const emailTemplate = (announcement) => `
+  <html>
+    <body>
+      <h1>Announcement</h1>
+      <p>${announcement}</p>
+    </body>
+  </html>
+`;
 
+app.post('/api/v1/send-announcement', async (req, res) => {
+  const { announcement } = req.body;
+  if (!announcement) {
+    return res
+      .status(400)
+      .json({ message: 'Announcement message is required' });
+  }
+
+  try {
+    const users = await User.find();
+    await Promise.all(
+      users.map((user) =>
+        transporter.sendMail({
+          from: process.env.EMAIL_USERNAME,
+          to: user.email,
+          subject: 'New Announcement!',
+          html: emailTemplate(announcement),
+        })
+      )
+    );
+    res.status(200).json({ message: 'Announcement sent successfully!' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ message: 'Failed to send announcement' });
+  }
+});
+
+// Start the server
 const PORT = process.env.PORT || 8081;
-
-app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

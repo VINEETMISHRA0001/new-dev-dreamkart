@@ -30,7 +30,7 @@ const articleSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Technology', 'Health', 'Lifestyle', 'Business', 'Education'], // Example categories
+    // enum: ['Technology', 'Health', 'Lifestyle', 'Business', 'Education'], // Example categories
   },
   comments: [
     {

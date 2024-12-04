@@ -8,6 +8,7 @@ const subcategorySchema = new mongoose.Schema({
     required: true,
   },
   description: { type: String },
+  image: { type: String }, // Field to store the image URL
 });
 
 module.exports = mongoose.model('Subcategory', subcategorySchema);

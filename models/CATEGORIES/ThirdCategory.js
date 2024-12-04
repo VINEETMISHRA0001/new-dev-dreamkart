@@ -8,6 +8,7 @@ const thirdCategorySchema = new mongoose.Schema({
     required: true,
   },
   description: { type: String },
+  image: { type: String }, // Field to store the image URL
 });
 
 module.exports = mongoose.model('ThirdCategory', thirdCategorySchema);

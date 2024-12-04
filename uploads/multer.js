@@ -1,36 +1,20 @@
-const multer = require("multer");
-const path = require("path");
+const multer = require('multer');
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "./uploads"); // Make sure this folder exists
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Appending extension
-  },
-});
+// Use memory storage for temporary handling
+const storage = multer.memoryStorage();
 
-// File filter to only allow Excel files
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
-    file.mimetype === "application/vnd.ms-excel"
-  ) {
-    cb(null, true);
-  } else {
-    cb(
-      new AppError("Invalid file type. Only Excel files are allowed.", 400),
-      false
-    );
-  }
-};
-
-// Multer instance for file uploads
+// Multer instance for ZIP files
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  // limits: { fileSize: 1024 * 1024 * 5 }, // Set a file size limit (e.g., 5MB)
+  storage,
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = ['.zip']; // Only allow ZIP files
+    const ext = file.originalname.toLowerCase().split('.').pop();
+    if (allowedExtensions.includes(`.${ext}`)) {
+      cb(null, true); // Accept the file
+    } else {
+      cb(new Error('Only ZIP files are allowed!'), false); // Reject non-ZIP files
+    }
+  },
 });
 
 module.exports = upload;

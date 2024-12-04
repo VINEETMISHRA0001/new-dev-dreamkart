@@ -70,12 +70,19 @@
 
 const express = require('express');
 const productController = require('../../controllers/PRODUCTS/Products'); // Adjust path as needed
+const upload = require('../../middlewares/MULTER/newMulter');
+const newupload = require('../../controllers/PRODUCTS/Products');
+const uploadExcel = require('../../newExcell');
 
 const router = express.Router();
 
 // Create a new product
-router.post('/', productController.createProduct);
-
+router.post('/', upload.array('images', 5), productController.createProduct);
+router.post(
+  '/excell-upload',
+  uploadExcel.single('file'),
+  productController.excelUploadController
+);
 // Get all products
 router.get('/', productController.getAllProducts);
 
@@ -83,7 +90,7 @@ router.get('/', productController.getAllProducts);
 router.get('/:id', productController.getProductById);
 
 // Update a product by ID
-router.put('/:id', productController.updateProduct);
+router.put('/:id', upload.array('images', 5), productController.updateProduct);
 
 // Delete a product by ID
 router.delete('/:id', productController.deleteProduct);
