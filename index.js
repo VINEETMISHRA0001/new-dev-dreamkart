@@ -71,6 +71,9 @@ app.use(
 
 // Socket.IO handling
 
+app.get('/', (req, res) => {
+  res.send('Backend Requested');
+});
 // API Routes
 app.use('/api/v1/protect/auth', authRoutes);
 app.use('/api/v1/user', profileRoutes);
