@@ -55,8 +55,8 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      'https://admin.dreamkart.world',
       'http://localhost:5173',
+      'https://admin.dreamkart.world',
       'http://localhost:5174',
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
