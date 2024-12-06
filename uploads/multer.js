@@ -1,28 +1,17 @@
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
+const memoryStorage = multer.memoryStorage(); // Use memory storage for file uploads in platforms like Vercel
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and JPG are allowed.'));
+  }
+};
 
-// Use memory storage
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+// Initialize multer with memory storage and file filter
+const upload = multer({ storage: memoryStorage, fileFilter });
 
-// Cloudinary upload function
-const uploadToCloudinary = (buffer) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: 'category-images' },
-      (error, result) => {
-        if (error) return reject(error);
-        resolve(result.secure_url);
-      }
-    );
-    stream.end(buffer);
-  });
-
-module.exports = { upload, uploadToCloudinary };
+// Export the configured middleware
+module.exports = upload;

@@ -30,6 +30,7 @@ exports.createCategory = async (req, res) => {
       console.log('Uploaded file URL:', imageUrl);
     }
 
+    // Create a new category
     const category = new Category({ name, description, image: imageUrl });
     const savedCategory = await category.save();
     console.log('Saved category:', savedCategory);
