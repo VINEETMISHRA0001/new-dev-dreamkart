@@ -126,8 +126,9 @@ exports.deleteProduct = async (req, res) => {
 exports.excelUploadController = async (req, res) => {
   try {
     const { thirdCategory } = req.body; // Selected third category ID
-    const file = req.file;
+    const file = req.file; // The file sent by multer
 
+    // Check if thirdCategory and file exist
     if (!thirdCategory) {
       return res.status(400).json({ message: 'Third category is required.' });
     }
@@ -136,8 +137,8 @@ exports.excelUploadController = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
 
-    // Parse Excel file
-    const workbook = xlsx.readFile(file.path); // Ensure the file path is valid
+    // If using memory storage, file will be in buffer instead of path
+    const workbook = xlsx.read(file.buffer, { type: 'buffer' }); // Reading from buffer
     const sheetData = xlsx.utils.sheet_to_json(
       workbook.Sheets[workbook.SheetNames[0]]
     );
@@ -149,66 +150,68 @@ exports.excelUploadController = async (req, res) => {
     }
 
     // Process each product row in the Excel file
-    const products = sheetData.map((row) => {
-      if (!row['SKU_ID']) {
-        throw new Error('SKU ID is required for each product.');
-      }
+    const products = sheetData
+      .map((row) => {
+        if (!row['SKU_ID']) {
+          return null; // Skip invalid rows (missing SKU_ID)
+        }
 
-      // Construct the product object based on the Excel data
-      return {
-        skuId: row['SKU_ID'], // SKU ID is mandatory
-        name: row['Product Name'] || 'Unnamed Product',
-        shortDescription: row['Short Description'] || '',
-        longDescription: row['Long Description'] || '',
-        styleId: row['Style ID'] || '',
-        price: parseFloat(row['Price']) || 0,
-        discount: parseFloat(row['Discount']) || 0,
-        gst: parseFloat(row['GST']) || 0,
-        hsnCode: row['HSN Code'] || '',
-        stitchType: row['Stitch Type'] || '',
-        length: row['Length'] || '',
-        neck: row['Neck'] || '',
-        occasion: row['Occasion'] || '',
-        ornamentation: row['Ornamentation'] || '',
-        pattern: row['Pattern'] || '',
-        sleeveLength: row['Sleeve Length'] || '',
-        sleeveStyling: row['Sleeve Styling'] || '',
-        weight: parseFloat(row['Weight']) || 0,
-        bustSize: parseFloat(row['Bust Size']) || 0,
-        shoulderSize: parseFloat(row['Shoulder Size']) || 0,
-        waistSize: parseFloat(row['Waist Size']) || 0,
-        hipSize: parseFloat(row['Hip Size']) || 0,
-        thirdCategory, // Store third category ID
-        countryOfOrigin: row['Country of Origin'] || 'India', // Default to 'India' if not provided
-        manufacturerDetails: row['Manufacturer Details'] || '',
-        packerDetails: row['Packer Details'] || '',
-        importerDetails: row['Importer Details'] || '',
-        images: row['Images']
-          ? row['Images'].split(',').map((img) => img.trim())
-          : [],
-        variations: [
-          {
-            color: row['Variations (Color)'] || '',
-            colorImages: row['Variations (Color Images)']
-              ? row['Variations (Color Images)']
-                  .split(',')
-                  .map((img) => img.trim())
-              : [],
-            sizes: [
-              {
-                size: row['Variations (Size)'] || '',
-                inventory: parseInt(row['Variations (Inventory)'], 10) || 0,
-              },
-            ],
-          },
-        ],
-        seoTitle: row['SEO Title'] || '',
-        seoDescription: row['SEO Description'] || '',
-        seoKeywords: row['SEO Keywords']
-          ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
-          : [],
-      };
-    });
+        // Construct the product object based on the Excel data
+        return {
+          skuId: row['SKU_ID'], // SKU ID is mandatory
+          name: row['Product Name'] || 'Unnamed Product',
+          shortDescription: row['Short Description'] || '',
+          longDescription: row['Long Description'] || '',
+          styleId: row['Style ID'] || '',
+          price: parseFloat(row['Price']) || 0,
+          discount: parseFloat(row['Discount']) || 0,
+          gst: parseFloat(row['GST']) || 0,
+          hsnCode: row['HSN Code'] || '',
+          stitchType: row['Stitch Type'] || '',
+          length: row['Length'] || '',
+          neck: row['Neck'] || '',
+          occasion: row['Occasion'] || '',
+          ornamentation: row['Ornamentation'] || '',
+          pattern: row['Pattern'] || '',
+          sleeveLength: row['Sleeve Length'] || '',
+          sleeveStyling: row['Sleeve Styling'] || '',
+          weight: parseFloat(row['Weight']) || 0,
+          bustSize: parseFloat(row['Bust Size']) || 0,
+          shoulderSize: parseFloat(row['Shoulder Size']) || 0,
+          waistSize: parseFloat(row['Waist Size']) || 0,
+          hipSize: parseFloat(row['Hip Size']) || 0,
+          thirdCategory, // Store third category ID
+          countryOfOrigin: row['Country of Origin'] || 'India', // Default to 'India' if not provided
+          manufacturerDetails: row['Manufacturer Details'] || '',
+          packerDetails: row['Packer Details'] || '',
+          importerDetails: row['Importer Details'] || '',
+          images: row['Images']
+            ? row['Images'].split(',').map((img) => img.trim())
+            : [],
+          variations: [
+            {
+              color: row['Variations (Color)'] || '',
+              colorImages: row['Variations (Color Images)']
+                ? row['Variations (Color Images)']
+                    .split(',')
+                    .map((img) => img.trim())
+                : [],
+              sizes: [
+                {
+                  size: row['Variations (Size)'] || '',
+                  inventory: parseInt(row['Variations (Inventory)'], 10) || 0,
+                },
+              ],
+            },
+          ],
+          seoTitle: row['SEO Title'] || '',
+          seoDescription: row['SEO Description'] || '',
+          seoKeywords: row['SEO Keywords']
+            ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
+            : [],
+        };
+      })
+      .filter(Boolean); // Filter out invalid rows
 
     // Insert all the products into the database
     await Product.insertMany(products);
