@@ -7,14 +7,26 @@ exports.createSubcategory = async (req, res) => {
     const { name, parentCategory, description } = req.body;
     let imageUrl = null;
 
-    // Upload image to Cloudinary if a file is provided
+    // Check if a file is provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'subcategories',
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'subcategories' }, // Upload to the 'subcategories' folder in Cloudinary
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        stream.end(req.file.buffer); // Pass the file buffer to Cloudinary
       });
-      imageUrl = result.secure_url;
+      imageUrl = result.secure_url; // Save the uploaded image URL
     }
 
+    // Create a new subcategory
     const subcategory = new Subcategory({
       name,
       parentCategory,
@@ -22,9 +34,11 @@ exports.createSubcategory = async (req, res) => {
       image: imageUrl,
     });
 
-    await subcategory.save();
-    res.status(201).json({ success: true, subcategory });
+    // Save to the database
+    const savedSubcategory = await subcategory.save();
+    res.status(201).json({ success: true, subcategory: savedSubcategory });
   } catch (error) {
+    console.error('Error creating subcategory:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
