@@ -1,20 +1,31 @@
 const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
 const cloudinary = require('../../config/Cloudinary');
 
-// CREATE a new third category
 exports.createThirdCategory = async (req, res) => {
   try {
     const { name, parentSubcategory, description } = req.body;
     let imageUrl = null;
 
-    // Upload image to Cloudinary if a file is provided
+    // Check if a file is provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'third_categories',
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'third_categories' }, // Upload to the 'third_categories' folder in Cloudinary
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        stream.end(req.file.buffer); // Pass the file buffer to Cloudinary
       });
-      imageUrl = result.secure_url;
+      imageUrl = result.secure_url; // Save the uploaded image URL
     }
 
+    // Create a new third category
     const thirdCategory = new ThirdCategory({
       name,
       parentSubcategory,
@@ -22,10 +33,12 @@ exports.createThirdCategory = async (req, res) => {
       image: imageUrl,
     });
 
+    // Save to the database
     const savedCategory = await thirdCategory.save();
     res.status(201).json({ success: true, thirdCategory: savedCategory });
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    console.error('Error creating third category:', error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
