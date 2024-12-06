@@ -65,7 +65,7 @@ app.use(
 );
 
 // Serve static files
-// app.use('/uploads', express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public')));
 
 // Rate limiter (optional for security)
 

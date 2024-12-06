@@ -4,11 +4,11 @@ const cloudinary = require('../../config/Cloudinary');
 // Create Category
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, image } = req.body;
     let imageUrl = null;
 
-    // Upload image to Cloudinary if a file is provided
     if (req.file) {
+      // Ensure the uploaded file path is valid
       const result = await cloudinary.uploader.upload(req.file.path, {
         folder: 'category-images',
       });

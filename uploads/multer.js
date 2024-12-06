@@ -1,20 +1,26 @@
 const multer = require('multer');
+const path = require('path');
 
-// Use memory storage for temporary handling
-const storage = multer.memoryStorage();
-
-// Multer instance for ZIP files
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowedExtensions = ['.zip']; // Only allow ZIP files
-    const ext = file.originalname.toLowerCase().split('.').pop();
-    if (allowedExtensions.includes(`.${ext}`)) {
-      cb(null, true); // Accept the file
-    } else {
-      cb(new Error('Only ZIP files are allowed!'), false); // Reject non-ZIP files
-    }
+// Multer configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Temporary storage folder
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and JPG are allowed.'));
+  }
+};
+
+const upload = multer({ storage, fileFilter });
+
+// Export the configured middleware
 module.exports = upload;

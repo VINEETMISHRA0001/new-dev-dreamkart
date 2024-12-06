@@ -11,7 +11,7 @@ router.post('/', upload.single('image'), categoryController.createCategory);
 router.get('/', categoryController.getCategories);
 
 // Route to update a category by ID
-router.put('/:id', upload.single('image'), categoryController.updateCategory);
+router.put('/:id', upload.single('file'), categoryController.updateCategory);
 
 // Route to delete a category by ID
 router.delete('/:id', categoryController.deleteCategory);
