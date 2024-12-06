@@ -1,15 +1,8 @@
 const multer = require('multer');
 const path = require('path');
 
-// Set up multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/excel/'); // Directory for uploaded Excel files
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
+// Set up multer memory storage (for Cloud environments like Vercel)
+const storage = multer.memoryStorage(); // Store files in memory instead of on disk
 
 // File filter to allow only Excel files
 const fileFilter = (req, file, cb) => {
