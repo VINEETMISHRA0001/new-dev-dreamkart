@@ -137,7 +137,7 @@ exports.excelUploadController = async (req, res) => {
     }
 
     // Parse Excel file
-    const workbook = xlsx.readFile(file.path);
+    const workbook = xlsx.readFile(file.path); // Ensure the file path is valid
     const sheetData = xlsx.utils.sheet_to_json(
       workbook.Sheets[workbook.SheetNames[0]]
     );
@@ -148,15 +148,16 @@ exports.excelUploadController = async (req, res) => {
       return res.status(400).json({ message: 'Invalid third category ID.' });
     }
 
-    // Process each product
+    // Process each product row in the Excel file
     const products = sheetData.map((row) => {
       if (!row['SKU_ID']) {
         throw new Error('SKU ID is required for each product.');
       }
 
+      // Construct the product object based on the Excel data
       return {
-        skuId: row['SKU_ID'], // Added SKU ID
-        name: row['Product Name'],
+        skuId: row['SKU_ID'], // SKU ID is mandatory
+        name: row['Product Name'] || 'Unnamed Product',
         shortDescription: row['Short Description'] || '',
         longDescription: row['Long Description'] || '',
         styleId: row['Style ID'] || '',
@@ -177,21 +178,25 @@ exports.excelUploadController = async (req, res) => {
         shoulderSize: parseFloat(row['Shoulder Size']) || 0,
         waistSize: parseFloat(row['Waist Size']) || 0,
         hipSize: parseFloat(row['Hip Size']) || 0,
-        thirdCategory,
-        countryOfOrigin: row['Country of Origin'] || 'India',
+        thirdCategory, // Store third category ID
+        countryOfOrigin: row['Country of Origin'] || 'India', // Default to 'India' if not provided
         manufacturerDetails: row['Manufacturer Details'] || '',
         packerDetails: row['Packer Details'] || '',
         importerDetails: row['Importer Details'] || '',
-        images: row['Images'] ? row['Images'].split(',') : [],
+        images: row['Images']
+          ? row['Images'].split(',').map((img) => img.trim())
+          : [],
         variations: [
           {
-            color: row['Variations (Color)'],
+            color: row['Variations (Color)'] || '',
             colorImages: row['Variations (Color Images)']
-              ? row['Variations (Color Images)'].split(',')
+              ? row['Variations (Color Images)']
+                  .split(',')
+                  .map((img) => img.trim())
               : [],
             sizes: [
               {
-                size: row['Variations (Size)'],
+                size: row['Variations (Size)'] || '',
                 inventory: parseInt(row['Variations (Inventory)'], 10) || 0,
               },
             ],
@@ -199,11 +204,13 @@ exports.excelUploadController = async (req, res) => {
         ],
         seoTitle: row['SEO Title'] || '',
         seoDescription: row['SEO Description'] || '',
-        seoKeywords: row['SEO Keywords'] ? row['SEO Keywords'].split(',') : [],
+        seoKeywords: row['SEO Keywords']
+          ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
+          : [],
       };
     });
 
-    // Save products to the database
+    // Insert all the products into the database
     await Product.insertMany(products);
 
     res.status(201).json({ message: 'Products uploaded successfully.' });
