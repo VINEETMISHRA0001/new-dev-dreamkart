@@ -4,21 +4,39 @@ const cloudinary = require('../../config/Cloudinary');
 // Create Category
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description, image } = req.body;
+    console.log('Request body:', req.body);
+    console.log('Request file:', req.file);
+
+    const { name, description } = req.body;
     let imageUrl = null;
 
     if (req.file) {
-      // Ensure the uploaded file path is valid
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'category-images',
+      console.log('Uploading file to Cloudinary...');
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'category-images' },
+          (error, result) => {
+            if (error) {
+              console.error('Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        stream.end(req.file.buffer); // For memory storage
       });
       imageUrl = result.secure_url;
+      console.log('Uploaded file URL:', imageUrl);
     }
 
     const category = new Category({ name, description, image: imageUrl });
-    await category.save();
-    res.status(201).json({ success: true, category });
+    const savedCategory = await category.save();
+    console.log('Saved category:', savedCategory);
+
+    res.status(201).json({ success: true, category: savedCategory });
   } catch (error) {
+    console.error('Error creating category:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
