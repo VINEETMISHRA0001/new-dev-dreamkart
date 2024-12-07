@@ -51,7 +51,7 @@ const productSchema = new mongoose.Schema(
     seoTitle: { type: String },
     seoDescription: { type: String },
     seoKeywords: [{ type: String }],
-    slug: { type: String, unique: true },
+    // slug: { type: String, unique: true },
   },
   { timestamps: true }
 );
