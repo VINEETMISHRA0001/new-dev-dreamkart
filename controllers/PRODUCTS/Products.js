@@ -122,6 +122,35 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+const generateErrorReport = (errors, res) => {
+  // Create a workbook and a sheet with the error details
+  const errorData = [
+    ['Row Number', 'Error Details'], // Header row
+    ...errors.map((error) => [error.row, error.errors]), // Map errors to rows
+  ];
+
+  const ws = xlsx.utils.aoa_to_sheet(errorData);
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, 'Errors');
+
+  // Generate the Excel file in memory
+  const fileBuffer = xlsx.write(wb, { bookType: 'xlsx', type: 'buffer' });
+
+  // Set the response headers to trigger a download
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename=error_report.xlsx'
+  );
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+
+  // Send the file buffer as the response
+  res.end(fileBuffer);
+};
+
 exports.excelUploadController = async (req, res) => {
   try {
     const { thirdCategory } = req.body; // Selected third category ID
