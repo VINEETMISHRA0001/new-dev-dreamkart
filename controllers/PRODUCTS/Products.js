@@ -194,9 +194,7 @@ exports.excelUploadController = async (req, res) => {
       if (!row['Price'] || isNaN(row['Price'])) {
         errorMessages.push('Price is required and must be a valid number');
       }
-      if (!row['Stock'] || isNaN(row['Stock'])) {
-        errorMessages.push('Stock is required and must be a valid number');
-      }
+
       if (!row['Short Description']) {
         errorMessages.push('Short Description is required');
       }
