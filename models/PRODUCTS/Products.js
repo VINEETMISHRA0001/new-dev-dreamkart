@@ -51,9 +51,17 @@ const productSchema = new mongoose.Schema(
     seoTitle: { type: String },
     seoDescription: { type: String },
     seoKeywords: [{ type: String }],
-    // slug: { type: String, unique: true },
+    slug: { type: String, unique: true },
   },
   { timestamps: true }
 );
+
+// Pre-save middleware to generate the slug
+productSchema.pre('save', async function (next) {
+  if (this.isModified('name')) {
+    this.slug = slugify(this.name, { lower: true, strict: true });
+  }
+  next();
+});
 
 module.exports = mongoose.model('NewProduct', productSchema);

@@ -156,7 +156,6 @@ exports.excelUploadController = async (req, res) => {
     const { thirdCategory } = req.body; // Selected third category ID
     const file = req.file; // The file sent by multer
 
-    // Check if thirdCategory and file exist
     if (!thirdCategory) {
       return res.status(400).json({ message: 'Third category is required.' });
     }
@@ -165,23 +164,20 @@ exports.excelUploadController = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
 
-    // If using memory storage, file will be in buffer instead of path
     const workbook = xlsx.read(file.buffer, { type: 'buffer' }); // Reading from buffer
     const sheetData = xlsx.utils.sheet_to_json(
       workbook.Sheets[workbook.SheetNames[0]]
     );
 
-    // Ensure the third category exists
     const category = await ThirdCategory.findById(thirdCategory);
     if (!category) {
       return res.status(400).json({ message: 'Invalid third category ID.' });
     }
 
-    // Process each product row in the Excel file
     const errors = [];
     const validProducts = [];
 
-    sheetData.forEach((row, index) => {
+    for (const [index, row] of sheetData.entries()) {
       const errorMessages = [];
 
       // Validate required fields
@@ -195,87 +191,85 @@ exports.excelUploadController = async (req, res) => {
         errorMessages.push('Price is required and must be a valid number');
       }
 
-      if (!row['Short Description']) {
-        errorMessages.push('Short Description is required');
-      }
-      if (!row['Long Description']) {
-        errorMessages.push('Long Description is required');
-      }
-
-      // If there are any error messages, add them to the errors array
+      // Skip if errors found
       if (errorMessages.length > 0) {
-        errors.push({
-          row: index + 2, // Row number (considering headers in row 1)
-          errors: errorMessages.join(', '),
-        });
-      } else {
-        // Construct the product object based on the Excel data
-        const product = {
-          skuId: row['SKU_ID'],
-          name: row['Product Name'] || 'Unnamed Product',
-          shortDescription: row['Short Description'] || '',
-          longDescription: row['Long Description'] || '',
-          styleId: row['Style ID'] || '',
-          price: parseFloat(row['Price']) || 0,
-          discount: parseFloat(row['Discount']) || 0,
-          gst: parseFloat(row['GST']) || 0,
-          hsnCode: row['HSN Code'] || '',
-          stitchType: row['Stitch Type'] || '',
-          length: row['Length'] || '',
-          neck: row['Neck'] || '',
-          occasion: row['Occasion'] || '',
-          ornamentation: row['Ornamentation'] || '',
-          pattern: row['Pattern'] || '',
-          sleeveLength: row['Sleeve Length'] || '',
-          sleeveStyling: row['Sleeve Styling'] || '',
-          weight: parseFloat(row['Weight']) || 0,
-          bustSize: parseFloat(row['Bust Size']) || 0,
-          shoulderSize: parseFloat(row['Shoulder Size']) || 0,
-          waistSize: parseFloat(row['Waist Size']) || 0,
-          hipSize: parseFloat(row['Hip Size']) || 0,
-          thirdCategory, // Store third category ID
-          countryOfOrigin: row['Country of Origin'] || 'India', // Default to 'India' if not provided
-          manufacturerDetails: row['Manufacturer Details'] || '',
-          packerDetails: row['Packer Details'] || '',
-          importerDetails: row['Importer Details'] || '',
-          images: row['Images']
-            ? row['Images'].split(',').map((img) => img.trim())
-            : [],
-          variations: [
-            {
-              color: row['Variations (Color)'] || '',
-              colorImages: row['Variations (Color Images)']
-                ? row['Variations (Color Images)']
-                    .split(',')
-                    .map((img) => img.trim())
-                : [],
-              sizes: [
-                {
-                  size: row['Variations (Size)'] || '',
-                  inventory: parseInt(row['Variations (Inventory)'], 10) || 0,
-                },
-              ],
-            },
-          ],
-          seoTitle: row['SEO Title'] || '',
-          seoDescription: row['SEO Description'] || '',
-          seoKeywords: row['SEO Keywords']
-            ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
-            : [],
-        };
-
-        validProducts.push(product); // Add valid product to array
+        errors.push({ row: index + 2, errors: errorMessages.join(', ') });
+        continue;
       }
-    });
 
-    // If there are any errors, generate and send an error Excel file
-    if (errors.length > 0) {
-      return generateErrorReport(errors, res); // Stop further processing and return error file
+      // Check if SKU_ID already exists
+      const existingProduct = await Product.findOne({
+        skuId: row['SKU_ID'],
+      });
+
+      if (existingProduct) {
+        errors.push({
+          row: index + 2,
+          errors: `SKU_ID "${row['SKU_ID']}" already exists.`,
+        });
+        continue;
+      }
+
+      // Generate slug for the product (await the result)
+      const slug = await generateUniqueSlug(row['Product Name']);
+
+      // Prepare product data
+      const productData = {
+        name: row['Product Name'],
+        shortDescription: row['Short Description'] || '',
+        longDescription: row['Long Description'] || '',
+        styleId: row['Style ID'] || '',
+        price: parseFloat(row['Price']),
+        discount: parseFloat(row['Discount']) || 0,
+        gst: parseFloat(row['GST']) || 0,
+        hsnCode: row['HSN Code'] || '',
+        inventory: parseInt(row['Inventory'], 10) || 0,
+        comboOf: row['Combo Of']
+          ? row['Combo Of'].split(',').map((c) => c.trim())
+          : [],
+        stitchType: row['Stitch Type'] || '',
+        length: row['Length'] || '',
+        neck: row['Neck'] || '',
+        occasion: row['Occasion'] || '',
+        ornamentation: row['Ornamentation'] || '',
+        pattern: row['Pattern'] || '',
+        sleeveLength: row['Sleeve Length'] || '',
+        sleeveStyling: row['Sleeve Styling'] || '',
+        weight: parseFloat(row['Weight']) || 0,
+        bustSize: parseFloat(row['Bust Size']) || 0,
+        shoulderSize: parseFloat(row['Shoulder Size']) || 0,
+        waistSize: parseFloat(row['Waist Size']) || 0,
+        hipSize: parseFloat(row['Hip Size']) || 0,
+        thirdCategory,
+        countryOfOrigin: row['Country of Origin'] || 'India',
+        manufacturerDetails: row['Manufacturer Details'] || '',
+        packerDetails: row['Packer Details'] || '',
+        importerDetails: row['Importer Details'] || '',
+        images: row['Images']
+          ? row['Images'].split(',').map((img) => img.trim())
+          : [],
+        variations: row['Variations'] ? JSON.parse(row['Variations']) : [],
+        skuId: row['SKU_ID'],
+        seoTitle: row['SEO Title'] || '',
+        seoDescription: row['SEO Description'] || '',
+        seoKeywords: row['SEO Keywords']
+          ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
+          : [],
+        slug, // Ensure slug is generated uniquely
+      };
+
+      validProducts.push(productData);
     }
 
-    // If there are valid products, insert them into the database
+    if (errors.length > 0) {
+      return res
+        .status(400)
+        .json({ message: 'Validation errors found.', errors });
+    }
+
+    // Bulk insert valid products
     if (validProducts.length > 0) {
-      await Product.insertMany(validProducts); // Insert the valid products into DB
+      await Product.insertMany(validProducts);
       return res
         .status(201)
         .json({ message: 'Products uploaded successfully.' });
@@ -288,4 +282,18 @@ exports.excelUploadController = async (req, res) => {
       .status(500)
       .json({ message: err.message || 'Error uploading products.' });
   }
+};
+
+// Helper to generate unique slugs
+const generateUniqueSlug = async (name) => {
+  const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  let uniqueSlug = baseSlug;
+  let counter = 1;
+
+  while (await Product.exists({ slug: uniqueSlug })) {
+    uniqueSlug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return uniqueSlug;
 };
