@@ -47,7 +47,7 @@ const productSchema = new mongoose.Schema(
         ],
       },
     ],
-    skuId: { type: String, unique: true, required: true }, // New field added
+    skuId: { type: String, required: true }, // New field added
     seoTitle: { type: String },
     seoDescription: { type: String },
     seoKeywords: [{ type: String }],
