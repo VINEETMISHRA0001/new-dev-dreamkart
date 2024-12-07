@@ -91,7 +91,6 @@ exports.getArticleById = async (req, res) => {
   }
 };
 
-// Update an article by ID
 exports.updateArticle = [
   upload.single('image'), // 'image' should be the name of the form field for image upload
   async (req, res) => {
@@ -103,29 +102,50 @@ exports.updateArticle = [
         imageUrl = await uploadImageToCloudinary(req.file.buffer);
       }
 
-      // Update article with new data
+      // Parse and structure the input data
       const updateData = {
-        ...req.body,
+        title: req.body.title,
+        description: req.body.description,
+        content: req.body.content,
+        author: req.body.author ? JSON.parse(req.body.author) : {}, // Handle author as an object (optional)
+        tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
+        category: req.body.category,
+        imageUrl: imageUrl || undefined, // Only update imageUrl if new image is provided
       };
-      if (imageUrl) updateData.imageUrl = imageUrl; // Only update imageUrl if a new image is uploaded
 
+      // Check if author fields are missing when updating
+      if (
+        updateData.author &&
+        (!updateData.author.name || !updateData.author.email)
+      ) {
+        return res.status(400).json({
+          message: 'Both author name and email are required.',
+        });
+      }
+
+      // Update the article in the database
       const article = await Article.findByIdAndUpdate(
         req.params.id,
         updateData,
         {
           new: true,
-          runValidators: true,
+          runValidators: true, // Ensure schema validation is applied
         }
       );
-      if (!article)
-        return res.status(404).json({ message: 'Article not found' });
 
+      if (!article) {
+        return res.status(404).json({ message: 'Article not found' });
+      }
+
+      // Return the updated article
       res.json(article);
     } catch (err) {
+      // Handle any errors that may occur
       res.status(400).json({ error: err.message });
     }
   },
 ];
+
 // Delete an article by ID
 exports.deleteArticle = async (req, res) => {
   try {
