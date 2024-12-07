@@ -56,14 +56,4 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-productSchema.pre('save', function (next) {
-  if (!this.slug && this.name) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/ /g, '-')
-      .replace(/[^\w-]+/g, '');
-  }
-  next();
-});
-
 module.exports = mongoose.model('NewProduct', productSchema);
