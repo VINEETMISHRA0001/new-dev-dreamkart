@@ -2,6 +2,7 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const Article = require('../../models/BLOGS/BlogModel');
 const streamifier = require('streamifier');
+
 // Cloudinary Configuration
 cloudinary.config({
   cloud_name: 'dqsokzave', // Replace with your Cloudinary cloud name
@@ -15,45 +16,51 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
 });
 
-// Create a new article with image upload
+// Helper Function: Upload image to Cloudinary
+const uploadImageToCloudinary = async (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'blog_images',
+        transformation: [{ width: 500, height: 500, crop: 'limit' }],
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+  });
+};
+
 exports.createArticle = [
-  // Parse form data and image upload
-  upload.single('imageUrl'), // 'imageUrl' should be the name of the form field for image upload
+  upload.single('image'), // 'image' should be the name of the form field for image upload
   async (req, res) => {
     try {
       let imageUrl = null;
 
       // Upload the file to Cloudinary if provided
       if (req.file) {
-        const result = await cloudinary.uploader
-          .upload_stream(
-            {
-              folder: 'blog_images',
-              transformation: [{ width: 500, height: 500, crop: 'limit' }],
-            },
-            (error, uploadResult) => {
-              if (error) throw new Error('Cloudinary upload failed');
-              return uploadResult;
-            }
-          )
-          .end(req.file.buffer);
-
-        imageUrl = result.secure_url; // Get secure URL from Cloudinary
+        imageUrl = await uploadImageToCloudinary(req.file.buffer);
       }
 
-      // Create the article with Cloudinary image URL
-      const article = new Article({
+      // Parse and structure the input data
+      const articleData = {
         title: req.body.title,
         description: req.body.description,
         content: req.body.content,
-        author: req.body.author,
-        tags: req.body.tags,
+        author: req.body.author ? JSON.parse(req.body.author) : {}, // Author as an object (optional fields)
+        tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
         category: req.body.category,
-        imageUrl, // Store the image URL returned by Cloudinary
-      });
+        imageUrl, // Cloudinary image URL
+      };
+
+      // Create the article with the structured data
+      const article = new Article(articleData);
 
       // Save the article to the database
       await article.save();
+
       res.status(201).json(article); // Respond with the created article
     } catch (err) {
       res.status(400).json({ error: err.message });
@@ -85,19 +92,40 @@ exports.getArticleById = async (req, res) => {
 };
 
 // Update an article by ID
-exports.updateArticle = async (req, res) => {
-  try {
-    const article = await Article.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!article) return res.status(404).json({ message: 'Article not found' });
-    res.json(article);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-};
+exports.updateArticle = [
+  upload.single('image'), // 'image' should be the name of the form field for image upload
+  async (req, res) => {
+    try {
+      let imageUrl = null;
 
+      // Upload the file to Cloudinary if provided
+      if (req.file) {
+        imageUrl = await uploadImageToCloudinary(req.file.buffer);
+      }
+
+      // Update article with new data
+      const updateData = {
+        ...req.body,
+      };
+      if (imageUrl) updateData.imageUrl = imageUrl; // Only update imageUrl if a new image is uploaded
+
+      const article = await Article.findByIdAndUpdate(
+        req.params.id,
+        updateData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+      if (!article)
+        return res.status(404).json({ message: 'Article not found' });
+
+      res.json(article);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+];
 // Delete an article by ID
 exports.deleteArticle = async (req, res) => {
   try {
