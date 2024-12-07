@@ -122,7 +122,6 @@ exports.deleteProduct = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 exports.excelUploadController = async (req, res) => {
   try {
     const { thirdCategory } = req.body; // Selected third category ID
@@ -137,7 +136,7 @@ exports.excelUploadController = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
 
-    // Read the Excel file
+    // If using memory storage, file will be in buffer instead of path
     const workbook = xlsx.read(file.buffer, { type: 'buffer' }); // Reading from buffer
     const sheetData = xlsx.utils.sheet_to_json(
       workbook.Sheets[workbook.SheetNames[0]]
@@ -149,15 +148,14 @@ exports.excelUploadController = async (req, res) => {
       return res.status(400).json({ message: 'Invalid third category ID.' });
     }
 
-    // Prepare arrays for storing valid products and errors
-    const errors = []; // Array to store error details
-    const validProducts = []; // Array to store valid products
-
     // Process each product row in the Excel file
+    const errors = [];
+    const validProducts = [];
+
     sheetData.forEach((row, index) => {
       const errorMessages = [];
 
-      // Check for required fields (e.g., SKU_ID)
+      // Validate required fields
       if (!row['SKU_ID']) {
         errorMessages.push('SKU_ID is required');
       }
@@ -165,10 +163,19 @@ exports.excelUploadController = async (req, res) => {
         errorMessages.push('Product Name is required');
       }
       if (!row['Price'] || isNaN(row['Price'])) {
-        errorMessages.push('Price is required and must be a number');
+        errorMessages.push('Price is required and must be a valid number');
+      }
+      if (!row['Stock'] || isNaN(row['Stock'])) {
+        errorMessages.push('Stock is required and must be a valid number');
+      }
+      if (!row['Short Description']) {
+        errorMessages.push('Short Description is required');
+      }
+      if (!row['Long Description']) {
+        errorMessages.push('Long Description is required');
       }
 
-      // If errors exist for this row, log the error
+      // If there are any error messages, add them to the errors array
       if (errorMessages.length > 0) {
         errors.push({
           row: index + 2, // Row number (considering headers in row 1)
@@ -179,11 +186,55 @@ exports.excelUploadController = async (req, res) => {
         const product = {
           skuId: row['SKU_ID'],
           name: row['Product Name'] || 'Unnamed Product',
-          price: parseFloat(row['Price']) || 0,
           shortDescription: row['Short Description'] || '',
           longDescription: row['Long Description'] || '',
-          category: thirdCategory,
-          // Additional fields like images, variations, etc.
+          styleId: row['Style ID'] || '',
+          price: parseFloat(row['Price']) || 0,
+          discount: parseFloat(row['Discount']) || 0,
+          gst: parseFloat(row['GST']) || 0,
+          hsnCode: row['HSN Code'] || '',
+          stitchType: row['Stitch Type'] || '',
+          length: row['Length'] || '',
+          neck: row['Neck'] || '',
+          occasion: row['Occasion'] || '',
+          ornamentation: row['Ornamentation'] || '',
+          pattern: row['Pattern'] || '',
+          sleeveLength: row['Sleeve Length'] || '',
+          sleeveStyling: row['Sleeve Styling'] || '',
+          weight: parseFloat(row['Weight']) || 0,
+          bustSize: parseFloat(row['Bust Size']) || 0,
+          shoulderSize: parseFloat(row['Shoulder Size']) || 0,
+          waistSize: parseFloat(row['Waist Size']) || 0,
+          hipSize: parseFloat(row['Hip Size']) || 0,
+          thirdCategory, // Store third category ID
+          countryOfOrigin: row['Country of Origin'] || 'India', // Default to 'India' if not provided
+          manufacturerDetails: row['Manufacturer Details'] || '',
+          packerDetails: row['Packer Details'] || '',
+          importerDetails: row['Importer Details'] || '',
+          images: row['Images']
+            ? row['Images'].split(',').map((img) => img.trim())
+            : [],
+          variations: [
+            {
+              color: row['Variations (Color)'] || '',
+              colorImages: row['Variations (Color Images)']
+                ? row['Variations (Color Images)']
+                    .split(',')
+                    .map((img) => img.trim())
+                : [],
+              sizes: [
+                {
+                  size: row['Variations (Size)'] || '',
+                  inventory: parseInt(row['Variations (Inventory)'], 10) || 0,
+                },
+              ],
+            },
+          ],
+          seoTitle: row['SEO Title'] || '',
+          seoDescription: row['SEO Description'] || '',
+          seoKeywords: row['SEO Keywords']
+            ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
+            : [],
         };
 
         validProducts.push(product); // Add valid product to array
@@ -210,32 +261,4 @@ exports.excelUploadController = async (req, res) => {
       .status(500)
       .json({ message: err.message || 'Error uploading products.' });
   }
-};
-// Function to generate Excel error report
-const generateErrorReport = (errors, res) => {
-  // Convert errors array to a sheet
-  const errorWorksheet = xlsx.utils.json_to_sheet(errors, {
-    header: ['Row', 'Errors'],
-  });
-
-  // Create a new workbook for errors
-  const errorWorkbook = xlsx.utils.book_new();
-  xlsx.utils.book_append_sheet(errorWorkbook, errorWorksheet, 'Errors');
-
-  // Generate the Excel file
-  const excelFile = xlsx.write(errorWorkbook, {
-    bookType: 'xlsx',
-    type: 'buffer',
-  });
-
-  // Set the response headers for downloading the file
-  res.setHeader(
-    'Content-Type',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  );
-  res.setHeader(
-    'Content-Disposition',
-    'attachment; filename=upload_errors.xlsx'
-  );
-  res.send(excelFile);
 };
