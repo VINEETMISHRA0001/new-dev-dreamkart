@@ -192,16 +192,17 @@ exports.excelUploadController = async (req, res) => {
 
     // If there are any errors, generate and send an error Excel file
     if (errors.length > 0) {
-      generateErrorReport(errors, res);
-      return; // Stop further processing
+      return generateErrorReport(errors, res); // Stop further processing and return error file
     }
 
     // If there are valid products, insert them into the database
     if (validProducts.length > 0) {
-      await Product.insertMany(validProducts);
-      res.status(201).json({ message: 'Products uploaded successfully.' });
+      await Product.insertMany(validProducts); // Insert the valid products into DB
+      return res
+        .status(201)
+        .json({ message: 'Products uploaded successfully.' });
     } else {
-      res.status(400).json({ message: 'No valid products to upload.' });
+      return res.status(400).json({ message: 'No valid products to upload.' });
     }
   } catch (err) {
     console.error(err);
@@ -210,7 +211,6 @@ exports.excelUploadController = async (req, res) => {
       .json({ message: err.message || 'Error uploading products.' });
   }
 };
-
 // Function to generate Excel error report
 const generateErrorReport = (errors, res) => {
   // Convert errors array to a sheet
