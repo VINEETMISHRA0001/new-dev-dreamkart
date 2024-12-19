@@ -64,7 +64,14 @@ exports.createProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate('thirdCategory');
-    res.status(200).json({ success: true, products });
+
+    // Map products to include stock status
+    const updatedProducts = products.map((product) => ({
+      ...product._doc, // Spread all existing fields of the product
+      stockStatus: product.inventory < 1 ? 'Out of Stock' : 'In Stock',
+    }));
+
+    res.status(200).json({ success: true, products: updatedProducts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

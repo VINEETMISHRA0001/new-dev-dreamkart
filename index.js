@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/DB');
 const AppError = require('./utils/AppError');
 const globalErrorHandler = require('./controllers/ErrorController');
-
+const sliderRoutes = require('./routes/SLIDER/Slider');
 // Import routes
 const authRoutes = require('./routes/AuthRoutes');
 const profileRoutes = require('./routes/ProfileRoutes');
@@ -39,6 +39,9 @@ const thirdCategoryRoutes = require('./routes/CATEGORIES/ThirdCategoryRoutes');
 const seoRoutes = require('./routes/Seo');
 const User = require('./models/UserSchema');
 
+const addedUserRoutes = require('./routes/USERMANAGEMENT/UserManagement');
+const testimonialRoutes = require('./routes/TESTIMONIALS/Testimonials');
+const socialMediaRoutes = require('./routes/SOCIAL/Social');
 // Environment configuration
 dotenv.config();
 connectDB();
@@ -74,6 +77,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
   res.send('Backend Requested');
 });
+
+app.post('/generate-waybill', async (req, res) => {
+  const orderData = req.body;
+
+  try {
+    const filePath = await generateWaybill(orderData);
+    res.download(filePath); // Send PDF as a download
+  } catch (err) {
+    res.status(500).send('Error generating waybill');
+  }
+});
 // API Routes
 app.use('/api/v1/protect/auth', authRoutes);
 app.use('/api/v1/user', profileRoutes);
@@ -100,7 +114,10 @@ app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/v1/banners', bannerRoutes);
 app.use('/api/v1/images/upload', bulkImageRoutes);
 app.use('/api/v1/seo', seoRoutes);
-
+app.use('/api/v1/sliders-inventory', sliderRoutes);
+app.use('/api/v1/testimonials', testimonialRoutes);
+app.use('/api/v1/socialmedia', socialMediaRoutes);
+app.use('/api/v1/add-users', addedUserRoutes);
 // Announcement email endpoint
 const transporter = nodemailer.createTransport({
   service: 'gmail',

@@ -150,7 +150,6 @@ router.patch('/:orderId/update-order', authenticateAdmin, updateOrderStatus);
 router.get('/recent', getRecentOrders);
 router.get('/:userId', getOrdersByUserId);
 // Route to generate and download the daily report in Excel
-
 // Mark orders as viewed
 router.post('/mark-viewed', markOrdersAsViewed);
 
