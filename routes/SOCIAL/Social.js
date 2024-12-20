@@ -19,7 +19,7 @@ const upload = multer({ storage: storage });
 // Create social media
 router.post(
   '/',
-  upload.single('icon'),
+  socialMediaController.uploadSocialMediaIcon,
   socialMediaController.createSocialMedia
 );
 
@@ -32,7 +32,7 @@ router.get('/:id', socialMediaController.getSocialMediaById);
 // Update social media
 router.put(
   '/:id',
-  upload.single('icon'),
+  socialMediaController.uploadSocialMediaIcon,
   socialMediaController.updateSocialMedia
 );
 

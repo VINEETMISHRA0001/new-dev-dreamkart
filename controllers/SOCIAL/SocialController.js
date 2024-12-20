@@ -1,21 +1,74 @@
 const SocialMedia = require('./../../models/SOCIALMEDIA/SocialMedia');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 // Create a new social media platform
+// exports.createSocialMedia = async (req, res) => {
+//   try {
+//     const { platform, url, description } = req.body;
+//     let icon = '';
+
+//     // Handle the image upload (assumes an image is uploaded via FormData)
+//     if (req.file) {
+//       const fileName = Date.now() + path.extname(req.file.originalname);
+//       const filePath = path.join(__dirname, '../../../uploads', fileName);
+//       fs.renameSync(req.file.path, filePath);
+//       icon = fileName;
+//     }
+
+//     const newSocialMedia = new SocialMedia({
+//       platform,
+//       url,
+//       description,
+//       icon,
+//     });
+
+//     const savedSocialMedia = await newSocialMedia.save();
+//     res.status(201).json(savedSocialMedia);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+// Set up multer memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Middleware to handle file uploads in memory
+exports.uploadSocialMediaIcon = upload.single('icon');
+
 exports.createSocialMedia = async (req, res) => {
   try {
     const { platform, url, description } = req.body;
     let icon = '';
 
-    // Handle the image upload (assumes an image is uploaded via FormData)
+    // Upload image to Cloudinary if provided
     if (req.file) {
-      const fileName = Date.now() + path.extname(req.file.originalname);
-      const filePath = path.join(__dirname, '../../../uploads', fileName);
-      fs.renameSync(req.file.path, filePath);
-      icon = fileName;
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'image' },
+          (error, uploadedResult) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(uploadedResult);
+            }
+          }
+        );
+        stream.end(req.file.buffer);
+      });
+
+      // Ensure Cloudinary upload returns the required URL
+      if (result && result.secure_url) {
+        icon = result.secure_url; // Store Cloudinary secure URL as icon
+      } else {
+        return res
+          .status(500)
+          .json({ error: 'Failed to upload image to Cloudinary' });
+      }
     }
 
+    // Create new SocialMedia document
     const newSocialMedia = new SocialMedia({
       platform,
       url,
