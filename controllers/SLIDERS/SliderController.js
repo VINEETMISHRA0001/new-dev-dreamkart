@@ -1,6 +1,12 @@
 const Slider = require('./../../models/SLIDERS/SliderModel');
 const cloudinary = require('./../../config/Cloudinary');
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Middleware to handle file uploads in memory
+exports.uploadSliderImage = upload.single('image');
+
 // Create a new slider
 exports.createSlider = async (req, res) => {
   try {
