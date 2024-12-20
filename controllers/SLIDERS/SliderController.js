@@ -17,18 +17,32 @@ exports.createSlider = async (req, res) => {
         .json({ success: false, error: 'No file uploaded' });
     }
 
-    // Upload image to Cloudinary directly from buffer
-    const result = await cloudinary.uploader
-      .upload_stream({ resource_type: 'image' }, (error, uploadedResult) => {
-        if (error) {
-          throw new Error('Cloudinary upload failed');
+    // Upload image to Cloudinary from buffer
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image' },
+        (error, uploadedResult) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(uploadedResult);
+          }
         }
+      );
+      stream.end(req.file.buffer);
+    });
 
-        return uploadedResult;
-      })
-      .end(req.file.buffer);
+    // Ensure Cloudinary upload returns the required fields
+    if (!result || !result.public_id || !result.secure_url) {
+      return res
+        .status(500)
+        .json({
+          success: false,
+          error: 'Failed to upload image to Cloudinary',
+        });
+    }
 
-    // Create a new slider with imageUrl
+    // Create a new slider with imageUrl and cloudinaryId
     const slider = new Slider({
       title: req.body.title,
       description: req.body.description,
