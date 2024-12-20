@@ -1,5 +1,6 @@
 const Slider = require('./../../models/SLIDERS/SliderModel');
 const cloudinary = require('./../../config/Cloudinary');
+const multer = require('multer');
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
