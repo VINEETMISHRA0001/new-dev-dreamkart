@@ -139,7 +139,6 @@ exports.updateSocialMedia = async (req, res) => {
   }
 };
 
-// Delete social media platform
 exports.deleteSocialMedia = async (req, res) => {
   try {
     const socialMedia = await SocialMedia.findByIdAndDelete(req.params.id);
@@ -149,9 +148,10 @@ exports.deleteSocialMedia = async (req, res) => {
         .json({ message: 'Social media platform not found' });
     }
 
-    // Optionally delete the image file from the server if it exists
+    // Delete the image from Cloudinary if it exists
     if (socialMedia.icon) {
-      fs.unlinkSync(path.join(__dirname, '../uploads', socialMedia.icon));
+      const publicId = socialMedia.icon.split('/').pop().split('.')[0]; // Extract the public ID
+      await cloudinary.uploader.destroy(publicId); // Delete from Cloudinary
     }
 
     res
