@@ -4,12 +4,13 @@ const {
   createTestimonial,
   getTestimonials,
   deleteTestimonial,
+  uploadTestimonialImage,
 } = require('./../../controllers/TESTIMONIALS/Testimonials');
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' }); // Temporary storage for images
 
-router.post('/', upload.single('image'), createTestimonial);
+router.post('/', uploadTestimonialImage, createTestimonial);
 router.get('/', getTestimonials);
 router.delete('/:id', deleteTestimonial);
 

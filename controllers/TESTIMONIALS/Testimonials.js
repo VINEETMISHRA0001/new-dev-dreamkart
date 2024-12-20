@@ -1,22 +1,57 @@
 const Testimonial = require('./../../models/TESTIMONIALS/Testimonials');
 const cloudinary = require('./../../config/Cloudinary');
+const multer = require('multer');
+
+/////////////
+
+// Set up multer memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// Middleware to handle file uploads in memory
+exports.uploadTestimonialImage = upload.single('image');
 
 exports.createTestimonial = async (req, res) => {
   try {
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path);
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload image to Cloudinary from buffer
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: 'image' },
+        (error, uploadedResult) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(uploadedResult);
+          }
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // Ensure Cloudinary upload returns the required field
+    if (!result || !result.secure_url) {
+      return res
+        .status(500)
+        .json({ message: 'Failed to upload image to Cloudinary' });
+    }
 
     // Save testimonial with Cloudinary URL
     const testimonial = new Testimonial({
       name: req.body.name,
       message: req.body.message,
-      imageUrl: result.secure_url,
+      imageUrl: result.secure_url, // Store the Cloudinary secure URL
     });
 
     await testimonial.save();
     res.status(201).json({ message: 'Testimonial created!', testimonial });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating testimonial', error });
+    res
+      .status(500)
+      .json({ message: 'Error creating testimonial', error: error.message });
   }
 };
 
