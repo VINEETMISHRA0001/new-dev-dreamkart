@@ -1,9 +1,9 @@
 const SocialMedia = require('./../../models/SOCIALMEDIA/SocialMedia');
+const cloudinary = require('cloudinary').v2;
 
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
-const { cloudinary_js_config } = require('../../config/Cloudinary');
 
 // Create a new social media platform
 // exports.createSocialMedia = async (req, res) => {
@@ -47,7 +47,7 @@ exports.createSocialMedia = async (req, res) => {
     // Upload image to Cloudinary if provided
     if (req.file) {
       const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary_js_config.uploader.upload_stream(
+        const stream = cloudinary.uploader.upload_stream(
           { resource_type: 'image' },
           (error, uploadedResult) => {
             if (error) {
