@@ -17,7 +17,6 @@ exports.createTestimonial = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Upload image to Cloudinary from buffer
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         { resource_type: 'image' },
@@ -32,18 +31,17 @@ exports.createTestimonial = async (req, res) => {
       stream.end(req.file.buffer);
     });
 
-    // Ensure Cloudinary upload returns the required field
     if (!result || !result.secure_url) {
       return res
         .status(500)
         .json({ message: 'Failed to upload image to Cloudinary' });
     }
 
-    // Save testimonial with Cloudinary URL
     const testimonial = new Testimonial({
       name: req.body.name,
       message: req.body.message,
-      imageUrl: result.secure_url, // Store the Cloudinary secure URL
+      imageUrl: result.secure_url,
+      isActive: req.body.isActive || true, // Set isActive (optional)
     });
 
     await testimonial.save();
@@ -57,7 +55,14 @@ exports.createTestimonial = async (req, res) => {
 
 exports.getTestimonials = async (req, res) => {
   try {
-    const testimonials = await Testimonial.find();
+    const { isActive } = req.query;
+
+    const query = {};
+    if (isActive !== undefined) {
+      query.isActive = isActive === 'true'; // Convert string to Boolean
+    }
+
+    const testimonials = await Testimonial.find(query);
     res.status(200).json(testimonials);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching testimonials', error });
@@ -88,5 +93,32 @@ exports.deleteTestimonial = async (req, res) => {
     res.status(200).json({ message: 'Testimonial deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting testimonial', error });
+  }
+};
+
+exports.toggleTestimonialStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the testimonial by ID
+    const testimonial = await Testimonial.findById(id);
+    if (!testimonial) {
+      return res.status(404).json({ message: 'Testimonial not found' });
+    }
+
+    // Toggle the isActive field
+    testimonial.isActive = !testimonial.isActive;
+    await testimonial.save();
+
+    res.status(200).json({
+      message: `Testimonial ${
+        testimonial.isActive ? 'activated' : 'deactivated'
+      } successfully`,
+      testimonial,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: 'Error toggling testimonial status', error });
   }
 };
