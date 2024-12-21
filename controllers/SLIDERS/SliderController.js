@@ -65,6 +65,8 @@ exports.getSliders = async (req, res) => {
 };
 
 // Update a slider
+// Update a slider with optional image
+// Update a slider with optional image
 exports.updateSlider = async (req, res) => {
   try {
     const slider = await Slider.findById(req.params.id);
@@ -77,19 +79,36 @@ exports.updateSlider = async (req, res) => {
 
     // Handle image update if a new file is uploaded
     if (req.file) {
-      // Destroy the old image if a new one is uploaded
+      // If a new image is uploaded, delete the old image from Cloudinary
       await cloudinary.uploader.destroy(slider.cloudinaryId);
-      const result = await cloudinary.uploader.upload(req.file.path); // Upload the new image
-      slider.cloudinaryId = result.public_id; // Update the Cloudinary public ID
-      slider.imageUrl = result.secure_url; // Update the image URL
+
+      // Upload the new image to Cloudinary using the buffer
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { resource_type: 'image' },
+          (error, uploadedResult) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(uploadedResult);
+            }
+          }
+        );
+        stream.end(req.file.buffer); // Send buffer directly
+      });
+
+      // Update the slider with the new image URL and Cloudinary public ID
+      slider.cloudinaryId = result.public_id;
+      slider.imageUrl = result.secure_url;
     }
 
-    // Update other fields
+    // Update other fields like title and description
     slider.title = req.body.title || slider.title;
     slider.description = req.body.description || slider.description;
     slider.isActive =
       req.body.isActive !== undefined ? req.body.isActive : slider.isActive;
 
+    // Save the updated slider
     await slider.save();
     res.status(200).json({ success: true, data: slider });
   } catch (err) {
