@@ -304,3 +304,68 @@ const generateUniqueSlug = async (name) => {
 
   return uniqueSlug;
 };
+
+// Apply Discounts
+exports.applyDiscountToCategory = async (req, res) => {
+  try {
+    const { thirdCategoryId, discount } = req.body;
+
+    // Validate inputs
+    if (!thirdCategoryId || discount === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'thirdCategoryId and discount are required',
+      });
+    }
+
+    if (discount < 0 || discount > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Discount must be between 0 and 100%',
+      });
+    }
+
+    // Check if the thirdCategory exists
+    const thirdCategory = await ThirdCategory.findById(thirdCategoryId);
+    if (!thirdCategory) {
+      return res.status(404).json({
+        success: false,
+        message: 'thirdCategory not found',
+      });
+    }
+
+    // Find products in the thirdCategory
+    const products = await Product.find({ thirdCategory: thirdCategoryId });
+
+    // Update prices and apply discounts
+    const updates = await Promise.all(
+      products.map(async (product) => {
+        const discountedPrice =
+          product.price - (product.price * discount) / 100;
+        return Product.findByIdAndUpdate(
+          product._id,
+          {
+            $set: {
+              discount,
+              price: discountedPrice.toFixed(2), // Optionally round off the price
+            },
+          },
+          { new: true } // Return the updated document
+        );
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Discount applied successfully, prices updated',
+      updatedProducts: updates,
+    });
+  } catch (error) {
+    console.error('Error in applyDiscountToCategory:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error applying discount and updating prices',
+      error: error.message,
+    });
+  }
+};

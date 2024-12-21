@@ -34,12 +34,10 @@ exports.createSlider = async (req, res) => {
 
     // Ensure Cloudinary upload returns the required fields
     if (!result || !result.public_id || !result.secure_url) {
-      return res
-        .status(500)
-        .json({
-          success: false,
-          error: 'Failed to upload image to Cloudinary',
-        });
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to upload image to Cloudinary',
+      });
     }
 
     // Create a new slider with imageUrl and cloudinaryId
@@ -79,9 +77,10 @@ exports.updateSlider = async (req, res) => {
 
     // Handle image update if a new file is uploaded
     if (req.file) {
-      await cloudinary.uploader.destroy(slider.cloudinaryId); // Delete the old image
-      const result = await cloudinary.uploader.upload(req.file.path); // Upload new image
-      slider.cloudinaryId = result.public_id; // Update Cloudinary public ID
+      // Destroy the old image if a new one is uploaded
+      await cloudinary.uploader.destroy(slider.cloudinaryId);
+      const result = await cloudinary.uploader.upload(req.file.path); // Upload the new image
+      slider.cloudinaryId = result.public_id; // Update the Cloudinary public ID
       slider.imageUrl = result.secure_url; // Update the image URL
     }
 

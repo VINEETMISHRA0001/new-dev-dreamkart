@@ -78,6 +78,7 @@ const router = express.Router();
 
 // Create a new product
 router.post('/', upload.array('images', 5), productController.createProduct);
+router.post('/apply-discount', productController.applyDiscountToCategory);
 router.post(
   '/excell-upload',
   uploadExcel.single('file'),
