@@ -99,7 +99,13 @@ exports.updateOrderStatus = async (req, res, next) => {
     const { status } = req.body; // Get new status from request body
 
     // Validate status (optional: you can set valid statuses)
-    const validStatuses = ['Pending', 'Shipped', 'Delivered', 'Canceled'];
+    const validStatuses = [
+      'Pending',
+      'Shipped',
+      'Delivered',
+      'Canceled',
+      'Hold',
+    ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         status: 'error',
