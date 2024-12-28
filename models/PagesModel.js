@@ -6,8 +6,8 @@ const sectionSchema = new mongoose.Schema({
 });
 
 const pageSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  order: { type: Number, required: true },
+  title: { type: String, required: true, unique: true }, // Ensure title is unique
+  order: { type: Number, required: true, unique: true }, // Ensure order is unique
   description: { type: String, required: true },
   metaTitle: { type: String },
   metaDescription: { type: String },
@@ -15,5 +15,10 @@ const pageSchema = new mongoose.Schema({
   sections: [sectionSchema],
 });
 
+// To ensure unique indexes in the database
+pageSchema.index({ title: 1 }, { unique: true });
+pageSchema.index({ order: 1 }, { unique: true });
+
 const Page = mongoose.model('Page', pageSchema);
+
 module.exports = Page;

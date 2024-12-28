@@ -22,6 +22,34 @@ exports.getPageById = async (req, res) => {
 };
 
 // Create a new page
+// exports.createPage = async (req, res) => {
+//   const {
+//     title,
+//     order,
+//     description,
+//     metaTitle,
+//     metaDescription,
+//     metaKeywords,
+//     sections,
+//   } = req.body;
+//   try {
+//     const newPage = new Page({
+//       title,
+//       order,
+//       description,
+//       metaTitle,
+//       metaDescription,
+//       metaKeywords,
+//       sections,
+//     });
+//     await newPage.save();
+//     res.status(201).json(newPage);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+// Create a new page
 exports.createPage = async (req, res) => {
   const {
     title,
@@ -32,7 +60,9 @@ exports.createPage = async (req, res) => {
     metaKeywords,
     sections,
   } = req.body;
+
   try {
+    // Create a new page instance
     const newPage = new Page({
       title,
       order,
@@ -42,10 +72,21 @@ exports.createPage = async (req, res) => {
       metaKeywords,
       sections,
     });
+
+    // Save the page to the database
     await newPage.save();
     res.status(201).json(newPage);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === 11000) {
+      // Handle duplicate key error
+      const duplicateField = Object.keys(error.keyValue)[0];
+      res.status(400).json({
+        message: `The ${duplicateField} must be unique. Duplicate value: "${error.keyValue[duplicateField]}".`,
+      });
+    } else {
+      // Handle other errors
+      res.status(500).json({ message: error.message });
+    }
   }
 };
 
