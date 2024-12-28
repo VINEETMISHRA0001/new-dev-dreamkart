@@ -5,6 +5,7 @@ const sliderSchema = new mongoose.Schema({
   description: { type: String, required: true },
   cloudinaryId: { type: String, required: true }, // Store Cloudinary public ID
   imageUrl: { type: String, required: true }, // Store the full image URL
+  url: { type: String, required: true }, // Add a URL field
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
 });

@@ -9,6 +9,52 @@ const upload = multer({ storage });
 exports.uploadSliderImage = upload.single('image');
 
 // Create a new slider
+// exports.createSlider = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res
+//         .status(400)
+//         .json({ success: false, error: 'No file uploaded' });
+//     }
+
+//     // Upload image to Cloudinary from buffer
+//     const result = await new Promise((resolve, reject) => {
+//       const stream = cloudinary.uploader.upload_stream(
+//         { resource_type: 'image' },
+//         (error, uploadedResult) => {
+//           if (error) {
+//             reject(error);
+//           } else {
+//             resolve(uploadedResult);
+//           }
+//         }
+//       );
+//       stream.end(req.file.buffer);
+//     });
+
+//     // Ensure Cloudinary upload returns the required fields
+//     if (!result || !result.public_id || !result.secure_url) {
+//       return res.status(500).json({
+//         success: false,
+//         error: 'Failed to upload image to Cloudinary',
+//       });
+//     }
+
+//     // Create a new slider with imageUrl and cloudinaryId
+//     const slider = new Slider({
+//       title: req.body.title,
+//       description: req.body.description,
+//       cloudinaryId: result.public_id, // Store Cloudinary public ID
+//       imageUrl: result.secure_url, // Store Cloudinary secure URL
+//     });
+
+//     await slider.save();
+//     res.status(201).json({ success: true, data: slider });
+//   } catch (err) {
+//     res.status(400).json({ success: false, error: err.message });
+//   }
+// };
+
 exports.createSlider = async (req, res) => {
   try {
     if (!req.file) {
@@ -40,12 +86,13 @@ exports.createSlider = async (req, res) => {
       });
     }
 
-    // Create a new slider with imageUrl and cloudinaryId
+    // Create a new slider with imageUrl, cloudinaryId, and URL
     const slider = new Slider({
       title: req.body.title,
       description: req.body.description,
       cloudinaryId: result.public_id, // Store Cloudinary public ID
       imageUrl: result.secure_url, // Store Cloudinary secure URL
+      url: req.body.url, // Add URL from the request body
     });
 
     await slider.save();
@@ -54,6 +101,7 @@ exports.createSlider = async (req, res) => {
     res.status(400).json({ success: false, error: err.message });
   }
 };
+
 // Get all sliders
 exports.getSliders = async (req, res) => {
   try {
