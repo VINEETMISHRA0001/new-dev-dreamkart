@@ -52,7 +52,7 @@ exports.createArticle = [
         author: req.body.author ? JSON.parse(req.body.author) : {}, // Author as an object (optional fields)
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
         category: req.body.category,
-        // subCategory: req.body.subCategory,
+        subCategory: req.body.subCategory,
         imageUrl, // Cloudinary image URL
       };
 
@@ -111,7 +111,7 @@ exports.updateArticle = [
         author: req.body.author ? JSON.parse(req.body.author) : {}, // Handle author as an object (optional)
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
         category: req.body.category,
-        // subCategory: req.body.subCategory,
+        subCategory: req.body.subCategory,
         imageUrl: imageUrl || undefined, // Only update imageUrl if new image is provided
       };
 
