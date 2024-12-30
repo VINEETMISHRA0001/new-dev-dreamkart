@@ -13,10 +13,7 @@ exports.getHomeSettings = async (req, res, next) => {
   try {
     const settings = await HomeSettings.findOne();
     if (!settings) {
-      return res.status(404).json({
-        status: 'fail',
-        message: 'Home settings not found.',
-      });
+      return;
     }
     res.status(200).json({
       status: 'success',
