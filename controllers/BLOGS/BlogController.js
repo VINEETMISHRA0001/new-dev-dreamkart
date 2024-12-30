@@ -5,9 +5,9 @@ const streamifier = require('streamifier');
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: 'dqsokzave', // Replace with your Cloudinary cloud name
+  cloud_name: 'dkmessaij', // Replace with your Cloudinary cloud name
   api_key: '135528738176537', // Replace with your Cloudinary API key
-  api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4', // Replace with your Cloudinary API secret
+  api_secret: 'OpL1iTkxJx8ySP0xPDe2edzQaSw', // Replace with your Cloudinary API secret
 });
 
 // Multer Configuration (file stored temporarily in memory)
