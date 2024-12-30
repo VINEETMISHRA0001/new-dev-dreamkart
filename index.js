@@ -42,6 +42,7 @@ const addedUserRoutes = require('./routes/USERMANAGEMENT/UserManagement');
 const testimonialRoutes = require('./routes/TESTIMONIALS/Testimonials');
 const socialMediaRoutes = require('./routes/SOCIAL/Social');
 const homesettingRoutes = require('./routes/HomeSettings');
+const codeRoutes = require('./routes/Code');
 // Environment configuration
 dotenv.config();
 connectDB();
@@ -119,6 +120,7 @@ app.use('/api/v1/testimonials', testimonialRoutes);
 app.use('/api/v1/socialmedia', socialMediaRoutes);
 app.use('/api/v1/add-users', addedUserRoutes);
 app.use('/api/v1/home-settings', homesettingRoutes);
+app.use('/api/v1/code', codeRoutes);
 // Announcement email endpoint
 const transporter = nodemailer.createTransport({
   service: 'gmail',
