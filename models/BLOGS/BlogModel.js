@@ -32,6 +32,11 @@ const articleSchema = new mongoose.Schema({
     required: true,
     // enum: ['Technology', 'Health', 'Lifestyle', 'Business', 'Education'], // Example categories
   },
+  subCategory: {
+    type: String,
+    required: true,
+    // enum: ['Technology', 'Health', 'Lifestyle', 'Business', 'Education'], // Example categories
+  },
   comments: [
     {
       user: { type: String, required: true },
