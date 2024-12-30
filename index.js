@@ -38,10 +38,10 @@ const chatRoutes = require('./routes/CHATS/ChatRoutes');
 const thirdCategoryRoutes = require('./routes/CATEGORIES/ThirdCategoryRoutes');
 const seoRoutes = require('./routes/Seo');
 const User = require('./models/UserSchema');
-
 const addedUserRoutes = require('./routes/USERMANAGEMENT/UserManagement');
 const testimonialRoutes = require('./routes/TESTIMONIALS/Testimonials');
 const socialMediaRoutes = require('./routes/SOCIAL/Social');
+const homesettingRoutes = require('./routes/HomeSettings');
 // Environment configuration
 dotenv.config();
 connectDB();
@@ -118,6 +118,7 @@ app.use('/api/v1/sliders-inventory', sliderRoutes);
 app.use('/api/v1/testimonials', testimonialRoutes);
 app.use('/api/v1/socialmedia', socialMediaRoutes);
 app.use('/api/v1/add-users', addedUserRoutes);
+app.use('/api/v1/home-settings', homesettingRoutes);
 // Announcement email endpoint
 const transporter = nodemailer.createTransport({
   service: 'gmail',
