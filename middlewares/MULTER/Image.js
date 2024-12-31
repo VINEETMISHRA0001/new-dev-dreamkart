@@ -4,9 +4,9 @@ const path = require('path');
 
 // Configure Cloudinary with your credentials
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // Add your Cloudinary Cloud Name
-  api_key: process.env.CLOUDINARY_API_KEY, // Add your Cloudinary API Key
-  api_secret: process.env.CLOUDINARY_API_SECRET, // Add your Cloudinary API Secret
+  cloud_name: 'dqsokzave',
+  api_key: '492147258758824',
+  api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4',
 });
 
 // Initialize multer with in-memory storage and file size limit

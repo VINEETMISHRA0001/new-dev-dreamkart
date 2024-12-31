@@ -7,9 +7,9 @@ const streamifier = require('streamifier');
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // Environment variable for cloud_name
-  api_key: process.env.CLOUDINARY_API_KEY, // Environment variable for api_key
-  api_secret: process.env.CLOUDINARY_API_SECRET, // Environment variable for api_secret
+  cloud_name: 'dqsokzave',
+  api_key: '492147258758824',
+  api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4',
 });
 
 // Multer Configuration (file stored temporarily in memory)
