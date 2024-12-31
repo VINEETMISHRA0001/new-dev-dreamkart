@@ -5,9 +5,9 @@ const streamifier = require('streamifier');
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: 'dkmessaij', // Replace with your Cloudinary cloud name
-  api_key: '135528738176537', // Replace with your Cloudinary API key
-  api_secret: 'OpL1iTkxJx8ySP0xPDe2edzQaSw', // Replace with your Cloudinary API secret
+  cloud_name: 'dqsokzave', // Replace with your Cloudinary cloud name
+  api_key: '492147258758824', // Replace with your Cloudinary API key
+  api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4', // Replace with your Cloudinary API secret
 });
 
 // Multer Configuration (file stored temporarily in memory)
@@ -52,7 +52,6 @@ exports.createArticle = [
         author: req.body.author ? JSON.parse(req.body.author) : {}, // Author as an object (optional fields)
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
         category: req.body.category,
-        subCategory: req.body.subCategory,
         imageUrl, // Cloudinary image URL
       };
 
@@ -111,7 +110,6 @@ exports.updateArticle = [
         author: req.body.author ? JSON.parse(req.body.author) : {}, // Handle author as an object (optional)
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array (optional)
         category: req.body.category,
-        subCategory: req.body.subCategory,
         imageUrl: imageUrl || undefined, // Only update imageUrl if new image is provided
       };
 
