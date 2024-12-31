@@ -4,37 +4,39 @@ const cloudinary = require('../../config/Cloudinary');
 // Create Category
 exports.createCategory = async (req, res) => {
   try {
-    console.log('Request body:', req.body);
-    console.log('Request file:', req.file);
-
-    const { name, description } = req.body;
+    const { name, description, metaTitle, metaDescription, metaKeywords } =
+      req.body;
     let imageUrl = null;
 
+    // Upload image to Cloudinary
     if (req.file) {
-      console.log('Uploading file to Cloudinary...');
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: 'category-images' },
           (error, result) => {
             if (error) {
-              console.error('Cloudinary upload error:', error);
               reject(error);
             } else {
               resolve(result);
             }
           }
         );
-        stream.end(req.file.buffer); // For memory storage
+        stream.end(req.file.buffer);
       });
       imageUrl = result.secure_url;
-      console.log('Uploaded file URL:', imageUrl);
     }
 
     // Create a new category
-    const category = new Category({ name, description, image: imageUrl });
-    const savedCategory = await category.save();
-    console.log('Saved category:', savedCategory);
+    const category = new Category({
+      name,
+      description,
+      image: imageUrl,
+      metaTitle,
+      metaDescription,
+      metaKeywords: metaKeywords ? metaKeywords.split(',') : [], // Split keywords if provided as a comma-separated string
+    });
 
+    const savedCategory = await category.save();
     res.status(201).json({ success: true, category: savedCategory });
   } catch (error) {
     console.error('Error creating category:', error.message);
@@ -56,13 +58,24 @@ exports.getCategories = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, metaTitle, metaDescription, metaKeywords } =
+      req.body;
     let imageUrl = null;
 
     // Upload new image to Cloudinary if provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'categories',
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'category-images' },
+          (error, result) => {
+            if (error) {
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+        stream.end(req.file.buffer);
       });
       imageUrl = result.secure_url;
     }
@@ -71,6 +84,9 @@ exports.updateCategory = async (req, res) => {
       name,
       description,
       ...(imageUrl && { image: imageUrl }),
+      metaTitle,
+      metaDescription,
+      metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
     };
 
     const updatedCategory = await Category.findByIdAndUpdate(id, updatedData, {
@@ -78,6 +94,7 @@ exports.updateCategory = async (req, res) => {
     });
     res.status(200).json({ success: true, updatedCategory });
   } catch (error) {
+    console.error('Error updating category:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -98,7 +115,7 @@ exports.deleteCategory = async (req, res) => {
     // Delete the image from Cloudinary if it exists
     if (category.image) {
       const publicId = category.image.split('/').pop().split('.')[0]; // Extract public ID from URL
-      await cloudinary.uploader.destroy(`categories/${publicId}`);
+      await cloudinary.uploader.destroy(`category-images/${publicId}`);
     }
 
     await category.deleteOne();
@@ -106,6 +123,7 @@ exports.deleteCategory = async (req, res) => {
       .status(200)
       .json({ success: true, message: 'Category deleted successfully' });
   } catch (error) {
+    console.error('Error deleting category:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
