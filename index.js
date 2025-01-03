@@ -56,20 +56,10 @@ app.use(helmet());
 // General middleware
 app.use(express.json({ limit: '10mb' })); // Limit JSON body size
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: [
-      'http://localhost:5173',
-      'https://admin.dreamkart.world',
-      'http://localhost:5174',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    credentials: true,
-  })
-);
+app.use(cors());
 
 // Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate limiter (optional for security)
 

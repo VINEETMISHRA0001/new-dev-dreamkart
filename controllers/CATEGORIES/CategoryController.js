@@ -1,43 +1,55 @@
 const Category = require('../../models/CATEGORIES/CategoriesSchema');
-const cloudinary = require('../../config/Cloudinary');
+const path = require('path');
+const fs = require('fs');
 
-// Create Category
+// Helper function to delete a file
+const deleteFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath); // Delete the file
+  }
+};
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, metaTitle, metaDescription, metaKeywords } =
       req.body;
-    let imageUrl = null;
 
-    // Upload image to Cloudinary
-    if (req.file) {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'category-images' },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        );
-        stream.end(req.file.buffer);
-      });
-      imageUrl = result.secure_url;
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Image is required' });
     }
 
-    // Create a new category
+    console.log('Uploaded file:', req.file);
+
+    // Save the file to the uploads folder
+    const uploadsDir = path.join(__dirname, './../../uploads/categories');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const filePath = `uploads/${req.file.originalname}`; // Relative path
+    fs.writeFileSync(
+      path.join(__dirname, './../../', filePath),
+      req.file.buffer
+    );
+
+    // Create and save the category document
     const category = new Category({
       name,
       description,
-      image: imageUrl,
+      image: filePath, // Save the relative path in the database
       metaTitle,
       metaDescription,
-      metaKeywords: metaKeywords ? metaKeywords.split(',') : [], // Split keywords if provided as a comma-separated string
+      metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
     });
 
     const savedCategory = await category.save();
-    res.status(201).json({ success: true, category: savedCategory });
+
+    res.status(201).json({
+      success: true,
+      message: 'Category created successfully',
+      category: savedCategory,
+    });
   } catch (error) {
     console.error('Error creating category:', error.message);
     res.status(500).json({ success: false, message: error.message });
@@ -60,30 +72,28 @@ exports.updateCategory = async (req, res) => {
     const { id } = req.params;
     const { name, description, metaTitle, metaDescription, metaKeywords } =
       req.body;
-    let imageUrl = null;
 
-    // Upload new image to Cloudinary if provided
+    const category = await Category.findById(id);
+    if (!category) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Category not found' });
+    }
+
+    let imageUrl = category.image;
+
+    // If a new image is provided, delete the old one and save the new one
     if (req.file) {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'category-images' },
-          (error, result) => {
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        );
-        stream.end(req.file.buffer);
-      });
-      imageUrl = result.secure_url;
+      if (imageUrl) {
+        deleteFile(path.join(__dirname, '../../', imageUrl)); // Delete old image
+      }
+      imageUrl = `/uploads/category-images/${req.file.filename}`;
     }
 
     const updatedData = {
       name,
       description,
-      ...(imageUrl && { image: imageUrl }),
+      image: imageUrl,
       metaTitle,
       metaDescription,
       metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
@@ -104,7 +114,6 @@ exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the category to delete
     const category = await Category.findById(id);
     if (!category) {
       return res
@@ -112,10 +121,9 @@ exports.deleteCategory = async (req, res) => {
         .json({ success: false, message: 'Category not found' });
     }
 
-    // Delete the image from Cloudinary if it exists
+    // Delete the image from local storage if it exists
     if (category.image) {
-      const publicId = category.image.split('/').pop().split('.')[0]; // Extract public ID from URL
-      await cloudinary.uploader.destroy(`category-images/${publicId}`);
+      deleteFile(path.join(__dirname, '../../', category.image));
     }
 
     await category.deleteOne();
