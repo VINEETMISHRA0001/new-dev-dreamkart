@@ -42,6 +42,9 @@ const addedUserRoutes = require('./routes/USERMANAGEMENT/UserManagement');
 const testimonialRoutes = require('./routes/TESTIMONIALS/Testimonials');
 const socialMediaRoutes = require('./routes/SOCIAL/Social');
 const homesettingRoutes = require('./routes/HomeSettings');
+const topWear = require('./routes/topWearRoutes');
+const commonfields = require('./routes/commonFields');
+const bottomWear = require('./routes/bottomWearRoutes');
 const codeRoutes = require('./routes/Code');
 // Environment configuration
 dotenv.config();
@@ -110,6 +113,9 @@ app.use('/api/v1/testimonials', testimonialRoutes);
 app.use('/api/v1/socialmedia', socialMediaRoutes);
 app.use('/api/v1/add-users', addedUserRoutes);
 app.use('/api/v1/home-settings', homesettingRoutes);
+// app.use('/api/v1/top-wear', topWear);
+// app.use('/api/v1/bottom-wear', bottomWear);
+// app.use('/api/v1/common-fields', commonfields);
 app.use('/api/v1/code', codeRoutes);
 // Announcement email endpoint
 const transporter = nodemailer.createTransport({

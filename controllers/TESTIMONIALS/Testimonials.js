@@ -1,14 +1,24 @@
 const Testimonial = require('./../../models/TESTIMONIALS/Testimonials');
-const cloudinary = require('./../../config/Cloudinary');
 const multer = require('multer');
+const path = require('path');
 
-/////////////
+// Set up multer storage to save images locally
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Folder where images will be stored
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)
+    ); // Use original file extension
+  },
+});
 
-// Set up multer memory storage
-const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Middleware to handle file uploads in memory
+// Middleware to handle file uploads locally
 exports.uploadTestimonialImage = upload.single('image');
 
 exports.createTestimonial = async (req, res) => {
@@ -17,30 +27,13 @@ exports.createTestimonial = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { resource_type: 'image' },
-        (error, uploadedResult) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(uploadedResult);
-          }
-        }
-      );
-      stream.end(req.file.buffer);
-    });
-
-    if (!result || !result.secure_url) {
-      return res
-        .status(500)
-        .json({ message: 'Failed to upload image to Cloudinary' });
-    }
+    // Build the file path of the uploaded image
+    const imageUrl = `/uploads/${req.file.filename}`;
 
     const testimonial = new Testimonial({
       name: req.body.name,
       message: req.body.message,
-      imageUrl: result.secure_url,
+      imageUrl: imageUrl, // Save the local image URL
       isActive: req.body.isActive || true, // Set isActive (optional)
     });
 
@@ -73,21 +66,16 @@ exports.deleteTestimonial = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the testimonial by ID
     const testimonial = await Testimonial.findById(id);
     if (!testimonial) {
       return res.status(404).json({ message: 'Testimonial not found' });
     }
 
-    // Extract the public ID from the Cloudinary URL
-    const imageUrlParts = testimonial.imageUrl.split('/');
-    const publicIdWithExtension = imageUrlParts[imageUrlParts.length - 1];
-    const publicId = publicIdWithExtension.split('.')[0];
+    // Delete the image from the server (optional, if you want to remove it when deleting the testimonial)
+    const imagePath = `uploads/${testimonial.imageUrl.split('/')[2]}`;
+    const fs = require('fs');
+    fs.unlinkSync(imagePath); // Delete the file from the local file system
 
-    // Remove the image from Cloudinary
-    await cloudinary.uploader.destroy(publicId);
-
-    // Delete the testimonial from the database
     await Testimonial.findByIdAndDelete(id);
 
     res.status(200).json({ message: 'Testimonial deleted successfully' });
@@ -100,13 +88,11 @@ exports.toggleTestimonialStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the testimonial by ID
     const testimonial = await Testimonial.findById(id);
     if (!testimonial) {
       return res.status(404).json({ message: 'Testimonial not found' });
     }
 
-    // Toggle the isActive field
     testimonial.isActive = !testimonial.isActive;
     await testimonial.save();
 

@@ -8,11 +8,13 @@ const deleteFile = (filePath) => {
     fs.unlinkSync(filePath); // Delete the file
   }
 };
+
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, metaTitle, metaDescription, metaKeywords } =
       req.body;
 
+    // Check if an image file is uploaded
     if (!req.file) {
       return res
         .status(400)
@@ -21,23 +23,29 @@ exports.createCategory = async (req, res) => {
 
     console.log('Uploaded file:', req.file);
 
-    // Save the file to the uploads folder
-    const uploadsDir = path.join(__dirname, './../../uploads/categories');
+    // Define the uploads directory
+    const uploadsDir = path.join(__dirname, '../../uploads/categories');
+
+    // Use a safe writable directory
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const filePath = `uploads/${req.file.originalname}`; // Relative path
-    fs.writeFileSync(
-      path.join(__dirname, './../../', filePath),
-      req.file.buffer
-    );
+    // Save the file in the uploads directory
+    const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
+    const filePath = path.join(uploadsDir, uniqueFilename);
+
+    // Write the file to the directory
+    fs.writeFileSync(filePath, req.file.buffer);
+
+    // Save the relative path of the image to the database
+    const relativeFilePath = `uploads/categories/${uniqueFilename}`;
 
     // Create and save the category document
     const category = new Category({
       name,
       description,
-      image: filePath, // Save the relative path in the database
+      image: relativeFilePath, // Save relative path to the database
       metaTitle,
       metaDescription,
       metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
@@ -45,6 +53,7 @@ exports.createCategory = async (req, res) => {
 
     const savedCategory = await category.save();
 
+    // Respond with success
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
@@ -52,7 +61,12 @@ exports.createCategory = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating category:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+      error: error.message,
+    });
   }
 };
 

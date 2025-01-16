@@ -1,7 +1,17 @@
-const express = require('express');
+const multer = require('multer');
 
+// Multer memory storage configuration
+const storage = multer.memoryStorage();
+
+// Middleware to handle single image upload
+const upload = multer({ storage });
+
+module.exports = upload;
+
+// Routes: subcategoryRoutes.js
+const express = require('express');
 const subcategoryController = require('../../controllers/CATEGORIES/SubCategoryController');
-const upload = require('../../uploads/multer');
+// const upload = require('../../uploads/multer');
 
 const router = express.Router();
 
@@ -15,6 +25,7 @@ router.post(
 // Get all subcategories
 router.get('/:categoryId', subcategoryController.getSubcategoriesByCategoryId);
 router.get('/', subcategoryController.getSubcategories);
+
 // Update a subcategory by ID
 router.put(
   '/:id',

@@ -5,15 +5,12 @@ const Image = require('../models/ImageBulkMode');
 
 const router = express.Router();
 
-// Configure Multer for temporary file storage
-const upload = multer({ dest: 'uploads/' });
+// Configure Multer for memory storage (already configured in controller)
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage }).array('images'); // Handle multiple files
 
-// Bulk upload route for ZIP files
-router.post(
-  '/bulk-upload',
-  upload.single('zipfile'),
-  imageController.bulkImageUpload
-);
+// Bulk upload route for images
+router.post('/bulk-upload', upload, imageController.bulkImageUpload);
 
 // Fetch all uploaded images
 router.get('/', async (req, res) => {

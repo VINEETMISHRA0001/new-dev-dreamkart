@@ -1,29 +1,20 @@
+// SubCategoryController.js
 const Subcategory = require('../../models/CATEGORIES/SubcategoriesSchema');
-const cloudinary = require('../../config/Cloudinary');
+const path = require('path');
+const fs = require('fs');
 
 // Create Subcategory
 exports.createSubcategory = async (req, res) => {
   try {
     const { name, parentCategory, description } = req.body;
-    let imageUrl = null;
+    let imagePath = null;
 
     // Check if a file is provided
     if (req.file) {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'subcategories' }, // Upload to the 'subcategories' folder in Cloudinary
-          (error, result) => {
-            if (error) {
-              console.error('Cloudinary upload error:', error);
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        );
-        stream.end(req.file.buffer); // Pass the file buffer to Cloudinary
-      });
-      imageUrl = result.secure_url; // Save the uploaded image URL
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const uploadPath = path.join(__dirname, '../../uploads', fileName);
+      fs.writeFileSync(uploadPath, req.file.buffer); // Save the file to the uploads folder
+      imagePath = `/uploads/${fileName}`; // Save the relative path to the image
     }
 
     // Create a new subcategory
@@ -31,7 +22,7 @@ exports.createSubcategory = async (req, res) => {
       name,
       parentCategory,
       description,
-      image: imageUrl,
+      image: imagePath,
     });
 
     // Save to the database
@@ -58,21 +49,21 @@ exports.updateSubcategory = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, parentCategory, description } = req.body;
-    let imageUrl = null;
+    let imagePath = null;
 
-    // Upload new image to Cloudinary if provided
+    // Check if a new file is provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'subcategories',
-      });
-      imageUrl = result.secure_url;
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const uploadPath = path.join(__dirname, '../../uploads', fileName);
+      fs.writeFileSync(uploadPath, req.file.buffer); // Save the file to the uploads folder
+      imagePath = `/uploads/${fileName}`; // Save the relative path to the image
     }
 
     const updatedData = {
       name,
       parentCategory,
       description,
-      ...(imageUrl && { image: imageUrl }),
+      ...(imagePath && { image: imagePath }),
     };
 
     const updatedSubcategory = await Subcategory.findByIdAndUpdate(
@@ -99,10 +90,12 @@ exports.deleteSubcategory = async (req, res) => {
         .json({ success: false, message: 'Subcategory not found' });
     }
 
-    // Delete the image from Cloudinary if it exists
+    // Delete the image file if it exists
     if (subcategory.image) {
-      const publicId = subcategory.image.split('/').pop().split('.')[0]; // Extract public ID from URL
-      await cloudinary.uploader.destroy(`subcategories/${publicId}`);
+      const imagePath = path.join(__dirname, '../../', subcategory.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     }
 
     await subcategory.deleteOne();

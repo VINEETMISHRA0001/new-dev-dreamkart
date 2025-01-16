@@ -1,19 +1,25 @@
 const HomeSettings = require('../models/HomeSettings');
-const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
+const path = require('path');
 
-// Cloudinary configuration
-cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET,
-});
+// Helper function to save file to disk
+const saveFile = (buffer, filename, folder = 'uploads') => {
+  const uploadDir = path.join(__dirname, `../${folder}`);
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const filePath = path.join(uploadDir, filename);
+  fs.writeFileSync(filePath, buffer);
+  return filePath;
+};
 
 // Get all home settings
 exports.getHomeSettings = async (req, res, next) => {
   try {
     const settings = await HomeSettings.findOne();
     if (!settings) {
-      return;
+      return res.status(404).json({ message: 'Home settings not found' });
     }
     res.status(200).json({
       status: 'success',
@@ -24,15 +30,6 @@ exports.getHomeSettings = async (req, res, next) => {
   }
 };
 
-// Upload file to Cloudinary
-const uploadToCloudinary = async (file) => {
-  const result = await cloudinary.uploader.upload(file, {
-    folder: 'home-settings',
-    use_filename: true,
-  });
-  return result.secure_url; // Return the uploaded image's secure URL
-};
-
 // Create or Update home settings
 exports.createOrUpdateHomeSettings = async (req, res, next) => {
   try {
@@ -41,17 +38,30 @@ exports.createOrUpdateHomeSettings = async (req, res, next) => {
 
     // Handle file uploads
     if (req.files?.logo) {
-      fileFields.logo = await uploadToCloudinary(req.files.logo[0].path);
+      const logoFile = req.files.logo[0];
+      const logoPath = saveFile(
+        logoFile.buffer,
+        `logo_${Date.now()}${path.extname(logoFile.originalname)}`
+      );
+      fileFields.logo = logoPath; // Save path to database
     }
+
     if (req.files?.bannerImage) {
-      fileFields['banner.bannerImage'] = await uploadToCloudinary(
-        req.files.bannerImage[0].path
+      const bannerFile = req.files.bannerImage[0];
+      const bannerPath = saveFile(
+        bannerFile.buffer,
+        `banner_${Date.now()}${path.extname(bannerFile.originalname)}`
       );
+      fileFields['banner.bannerImage'] = bannerPath;
     }
+
     if (req.files?.premiumLeftImage) {
-      fileFields['premiumMember.leftImage'] = await uploadToCloudinary(
-        req.files.premiumLeftImage[0].path
+      const premiumFile = req.files.premiumLeftImage[0];
+      const premiumPath = saveFile(
+        premiumFile.buffer,
+        `premium_${Date.now()}${path.extname(premiumFile.originalname)}`
       );
+      fileFields['premiumMember.leftImage'] = premiumPath;
     }
 
     // Update or create home settings

@@ -1,38 +1,42 @@
-require('dotenv').config(); // Load environment variables from .env file
-
-const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const Article = require('../../models/BLOGS/BlogModel');
-const streamifier = require('streamifier');
 
-// Cloudinary Configuration
-cloudinary.config({
-  cloud_name: 'dqsokzave',
-  api_key: '492147258758824',
-  api_secret: 'CZSOue2Mi_BiqKXQGzA5lEMF8S4',
-});
+// Multer Configuration
+const memoryStorage = multer.memoryStorage(); // Store files temporarily in memory
+const fileFilter = (req, file, cb) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only JPEG, PNG, and JPG are allowed.'));
+  }
+};
 
-// Multer Configuration (file stored temporarily in memory)
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: memoryStorage,
+  fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
 });
 
-// Helper Function: Upload image to Cloudinary
-const uploadImageToCloudinary = async (fileBuffer) => {
-  return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'blog_images', // Store images in 'blog_images' folder on Cloudinary
-        transformation: [{ width: 500, height: 500, crop: 'limit' }], // Image resizing
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result.secure_url);
-      }
-    );
-    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
-  });
+// Helper Function: Save file to uploads directory
+const saveFileToUploads = (file) => {
+  const fs = require('fs');
+  const path = require('path');
+  const uploadsDir = path.join(__dirname, '../../uploads/blog_images');
+
+  // Create uploads directory if it doesn't exist
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const uniqueFilename = `${Date.now()}-${file.originalname}`;
+  const filePath = path.join(uploadsDir, uniqueFilename);
+
+  // Write file buffer to disk
+  fs.writeFileSync(filePath, file.buffer);
+
+  // Return relative file path
+  return `uploads/blog_images/${uniqueFilename}`;
 };
 
 // Create Article
@@ -42,9 +46,9 @@ exports.createArticle = [
     try {
       let imageUrl = null;
 
-      // Upload the image to Cloudinary if provided
+      // Save the image to the uploads directory if provided
       if (req.file) {
-        imageUrl = await uploadImageToCloudinary(req.file.buffer);
+        imageUrl = saveFileToUploads(req.file);
       }
 
       // Parse and structure the input data
@@ -56,7 +60,7 @@ exports.createArticle = [
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags array
         category: req.body.category,
         subCategory: req.body.subCategory,
-        imageUrl, // Cloudinary image URL
+        imageUrl, // Local file path
       };
 
       // Create the article
@@ -100,9 +104,9 @@ exports.updateArticle = [
     try {
       let imageUrl = null;
 
-      // Upload the image to Cloudinary if provided
+      // Save the image to the uploads directory if provided
       if (req.file) {
-        imageUrl = await uploadImageToCloudinary(req.file.buffer);
+        imageUrl = saveFileToUploads(req.file);
       }
 
       // Parse and structure the input data
@@ -114,7 +118,7 @@ exports.updateArticle = [
         tags: req.body.tags ? JSON.parse(req.body.tags) : [], // Tags as an array
         category: req.body.category,
         subCategory: req.body.subCategory,
-        imageUrl: imageUrl || undefined, // Only update imageUrl if new image is provided
+        imageUrl: imageUrl || undefined, // Only update imageUrl if a new image is provided
       };
 
       // Update the article in the database

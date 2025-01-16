@@ -1,28 +1,25 @@
 const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
-const cloudinary = require('../../config/Cloudinary');
+const fs = require('fs');
+const path = require('path');
 
+// Create Third Category
 exports.createThirdCategory = async (req, res) => {
   try {
     const { name, parentSubcategory, description } = req.body;
-    let imageUrl = null;
+    let image = null;
 
-    // Check if a file is provided
+    // Save the file to the uploads folder if provided
     if (req.file) {
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: 'third_categories' }, // Upload to the 'third_categories' folder in Cloudinary
-          (error, result) => {
-            if (error) {
-              console.error('Cloudinary upload error:', error);
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          }
-        );
-        stream.end(req.file.buffer); // Pass the file buffer to Cloudinary
-      });
-      imageUrl = result.secure_url; // Save the uploaded image URL
+      const uploadPath = path.join(__dirname, '../../uploads/third_categories');
+
+      // Ensure the directory exists
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const imagePath = path.join(uploadPath, req.file.originalname);
+      fs.writeFileSync(imagePath, req.file.buffer); // Save the image to the uploads folder
+      image = `uploads/third_categories/${req.file.originalname}`; // Save relative path
     }
 
     // Create a new third category
@@ -30,7 +27,7 @@ exports.createThirdCategory = async (req, res) => {
       name,
       parentSubcategory,
       description,
-      image: imageUrl,
+      image,
     });
 
     // Save to the database
@@ -42,7 +39,7 @@ exports.createThirdCategory = async (req, res) => {
   }
 };
 
-// READ all third categories
+// Get All Third Categories
 exports.getAllThirdCategories = async (req, res) => {
   try {
     const thirdCategories = await ThirdCategory.find().populate(
@@ -54,7 +51,7 @@ exports.getAllThirdCategories = async (req, res) => {
   }
 };
 
-// READ a specific third category by ID
+// Get a Specific Third Category by ID
 exports.getThirdCategoryById = async (req, res) => {
   try {
     const thirdCategory = await ThirdCategory.findById(req.params.id).populate(
@@ -71,25 +68,31 @@ exports.getThirdCategoryById = async (req, res) => {
   }
 };
 
-// UPDATE a third category by ID
+// Update a Third Category by ID
 exports.updateThirdCategory = async (req, res) => {
   try {
     const { name, parentSubcategory, description } = req.body;
-    let imageUrl = null;
+    let image = null;
 
-    // Upload a new image to Cloudinary if provided
+    // Save the new file to the uploads folder if provided
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: 'third_categories',
-      });
-      imageUrl = result.secure_url;
+      const uploadPath = path.join(__dirname, '../../uploads/third_categories');
+
+      // Ensure the directory exists
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const imagePath = path.join(uploadPath, req.file.originalname);
+      fs.writeFileSync(imagePath, req.file.buffer); // Save the image to the uploads folder
+      image = `uploads/third_categories/${req.file.originalname}`; // Save relative path
     }
 
     const updatedData = {
       name,
       parentSubcategory,
       description,
-      ...(imageUrl && { image: imageUrl }),
+      ...(image && { image }),
     };
 
     const updatedCategory = await ThirdCategory.findByIdAndUpdate(
@@ -110,7 +113,7 @@ exports.updateThirdCategory = async (req, res) => {
   }
 };
 
-// DELETE a third category by ID
+// Delete a Third Category by ID
 exports.deleteThirdCategory = async (req, res) => {
   try {
     const thirdCategory = await ThirdCategory.findById(req.params.id);
@@ -121,10 +124,12 @@ exports.deleteThirdCategory = async (req, res) => {
         .json({ success: false, message: 'Third category not found' });
     }
 
-    // Delete the image from Cloudinary if it exists
+    // Delete the image from the uploads folder if it exists
     if (thirdCategory.image) {
-      const publicId = thirdCategory.image.split('/').pop().split('.')[0]; // Extract public ID from URL
-      await cloudinary.uploader.destroy(`third_categories/${publicId}`);
+      const imagePath = path.join(__dirname, '../../', thirdCategory.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath); // Delete the image file
+      }
     }
 
     await thirdCategory.deleteOne();
@@ -136,16 +141,15 @@ exports.deleteThirdCategory = async (req, res) => {
   }
 };
 
+// Get Third Categories by Subcategory ID
 exports.getThirdCategoriesBySubcategoryId = async (req, res) => {
   try {
     const { subcategoryId } = req.params;
 
-    // Find third categories that belong to the given subcategory
     const thirdCategories = await ThirdCategory.find({
       parentSubcategory: subcategoryId,
     });
 
-    // Check if no third categories are found
     if (!thirdCategories || thirdCategories.length === 0) {
       return res.status(404).json({
         success: false,
@@ -153,15 +157,8 @@ exports.getThirdCategoriesBySubcategoryId = async (req, res) => {
       });
     }
 
-    // Respond with the found third categories
-    res.status(200).json({
-      success: true,
-      thirdCategories,
-    });
+    res.status(200).json({ success: true, thirdCategories });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };

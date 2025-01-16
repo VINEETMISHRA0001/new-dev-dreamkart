@@ -2,23 +2,14 @@ const express = require('express');
 const router = express.Router();
 const homeSettingsController = require('../controllers/HomeSettings');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
-// Configure multer for temporary file uploads
-const upload = multer({ dest: 'uploads/' });
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-// Middleware to clean up temporary uploaded files
+// Middleware to clean up memory after processing (not needed here but kept for clarity)
 const cleanUpFiles = (req, res, next) => {
-  const files = req.files || {};
-  const allFiles = Object.values(files).flat(); // Flatten files object
-
-  allFiles.forEach((file) => {
-    fs.unlink(file.path, (err) => {
-      if (err) console.error(`Error deleting temp file: ${file.path}`, err);
-    });
-  });
-
+  // No file cleanup needed since files are stored in memory
   next();
 };
 
@@ -32,7 +23,7 @@ router
       { name: 'premiumLeftImage', maxCount: 1 },
     ]),
     homeSettingsController.createOrUpdateHomeSettings,
-    cleanUpFiles // Clean up temp files after processing
+    cleanUpFiles // Clean up memory (if needed)
   )
   .delete(homeSettingsController.deleteHomeSettings);
 

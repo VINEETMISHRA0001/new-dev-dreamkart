@@ -197,6 +197,9 @@ exports.excelUploadController = async (req, res) => {
       if (!row['Price'] || isNaN(row['Price'])) {
         errorMessages.push('Price is required and must be a valid number');
       }
+      if (!row['MRP'] || isNaN(row['MRP'])) {
+        errorMessages.push('MRP is required and must be a valid number');
+      }
 
       // Skip if errors found
       if (errorMessages.length > 0) {
@@ -226,6 +229,7 @@ exports.excelUploadController = async (req, res) => {
         shortDescription: row['Short Description'] || '',
         longDescription: row['Long Description'] || '',
         styleId: row['Style ID'] || '',
+        mrp: parseFloat(row['MRP']),
         price: parseFloat(row['Price']),
         discount: parseFloat(row['Discount']) || 0,
         gst: parseFloat(row['GST']) || 0,
@@ -235,6 +239,7 @@ exports.excelUploadController = async (req, res) => {
           ? row['Combo Of'].split(',').map((c) => c.trim())
           : [],
         stitchType: row['Stitch Type'] || '',
+        fabric: row['Fabric'] || '',
         length: row['Length'] || '',
         neck: row['Neck'] || '',
         occasion: row['Occasion'] || '',
@@ -242,20 +247,36 @@ exports.excelUploadController = async (req, res) => {
         pattern: row['Pattern'] || '',
         sleeveLength: row['Sleeve Length'] || '',
         sleeveStyling: row['Sleeve Styling'] || '',
+        hemline: row['Hemline'] || '',
+        yokeDesign: row['Yoke Design'] || '',
+        transparency: row['Transparency'] || '',
+        fitType: row['Fit Type'] || '',
         weight: parseFloat(row['Weight']) || 0,
         bustSize: parseFloat(row['Bust Size']) || 0,
         shoulderSize: parseFloat(row['Shoulder Size']) || 0,
         waistSize: parseFloat(row['Waist Size']) || 0,
         hipSize: parseFloat(row['Hip Size']) || 0,
+        washingCare: row['Washing Care'] || '',
+        closureType: row['Closure Type'] || '',
+        liningMaterial: row['Lining Material'] || '',
+        embellishments: row['Embellishments']
+          ? row['Embellishments'].split(',').map((e) => e.trim())
+          : [],
         thirdCategory,
         countryOfOrigin: row['Country of Origin'] || 'India',
         manufacturerDetails: row['Manufacturer Details'] || '',
         packerDetails: row['Packer Details'] || '',
         importerDetails: row['Importer Details'] || '',
+        careInstructions: row['Care Instructions'] || '',
         images: row['Images']
           ? row['Images'].split(',').map((img) => img.trim())
           : [],
-        variations: row['Variations'] ? JSON.parse(row['Variations']) : [],
+        videos: row['Videos']
+          ? row['Videos'].split(',').map((vid) => vid.trim())
+          : [],
+        variations: row['Variations (JSON)']
+          ? JSON.parse(row['Variations (JSON)'])
+          : [],
         skuId: row['SKU_ID'],
         seoTitle: row['SEO Title'] || '',
         seoDescription: row['SEO Description'] || '',
@@ -369,3 +390,206 @@ exports.applyDiscountToCategory = async (req, res) => {
     });
   }
 };
+
+/////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+
+// const Product = require('../../models/PRODUCTS/Products');
+// const xlsx = require('xlsx');
+// const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
+
+// // Create a new product
+// exports.createProduct = async (req, res) => {
+//   try {
+//     const productData = { ...req.body };
+
+//     // Parse comboOf and images
+//     if (req.body.comboOf) {
+//       productData.comboOf = req.body.comboOf.split(',');
+//     }
+//     if (req.body.images) {
+//       productData.images = req.body.images.split(',');
+//     }
+
+//     // Parse variations (if provided as JSON string)
+//     if (req.body.variations) {
+//       try {
+//         productData.variations =
+//           typeof req.body.variations === 'string'
+//             ? JSON.parse(req.body.variations)
+//             : req.body.variations;
+//       } catch (err) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid JSON format in 'variations'",
+//           error: err.message,
+//         });
+//       }
+//     }
+
+//     // Validate required fields
+//     const { name, price, thirdCategory } = productData;
+//     if (!name || !price || !thirdCategory) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields: name, price, or thirdCategory',
+//       });
+//     }
+
+//     // Create and save the product
+//     const product = new Product(productData);
+//     await product.save();
+
+//     res.status(201).json({ success: true, product });
+//   } catch (error) {
+//     console.error('Error in createProduct:', error.message);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error creating product',
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Get all products
+// exports.getAllProducts = async (req, res) => {
+//   try {
+//     const products = await Product.find().populate('thirdCategory');
+//     const updatedProducts = products.map((product) => ({
+//       ...product._doc,
+//       stockStatus: product.inventory < 1 ? 'Out of Stock' : 'In Stock',
+//     }));
+
+//     res.status(200).json({ success: true, products: updatedProducts });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// // Get a product by ID
+// exports.getProductById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const product = await Product.findById(id).populate('thirdCategory');
+//     if (!product) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Product not found' });
+//     }
+//     res.status(200).json({ success: true, product });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// // Update a product by ID
+// exports.updateProduct = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updatedProduct = await Product.findByIdAndUpdate(id, req.body, {
+//       new: true,
+//       runValidators: true,
+//     });
+//     if (!updatedProduct) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Product not found' });
+//     }
+//     res.status(200).json({ success: true, updatedProduct });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// // Delete a product by ID
+// exports.deleteProduct = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const deletedProduct = await Product.findByIdAndDelete(id);
+//     if (!deletedProduct) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Product not found' });
+//     }
+//     res
+//       .status(200)
+//       .json({ success: true, message: 'Product deleted successfully' });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// // Apply discounts to a category
+// exports.applyDiscountToCategory = async (req, res) => {
+//   try {
+//     const { thirdCategoryId, discount } = req.body;
+
+//     // Validate inputs
+//     if (!thirdCategoryId || discount === undefined) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'thirdCategoryId and discount are required',
+//       });
+//     }
+//     if (discount < 0 || discount > 100) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Discount must be between 0 and 100%',
+//       });
+//     }
+
+//     // Check if the category exists
+//     const category = await ThirdCategory.findById(thirdCategoryId);
+//     if (!category) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Category not found' });
+//     }
+
+//     // Find and update products
+//     const products = await Product.find({ thirdCategory: thirdCategoryId });
+//     const updates = await Promise.all(
+//       products.map(async (product) => {
+//         const discountedPrice =
+//           product.price - (product.price * discount) / 100;
+//         return Product.findByIdAndUpdate(
+//           product._id,
+//           {
+//             $set: {
+//               discount,
+//               price: discountedPrice.toFixed(2),
+//             },
+//           },
+//           { new: true }
+//         );
+//       })
+//     );
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Discount applied successfully',
+//       updatedProducts: updates,
+//     });
+//   } catch (error) {
+//     console.error('Error in applyDiscountToCategory:', error.message);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error applying discount',
+//       error: error.message,
+//     });
+//   }
+// };
+
+// // Helper to generate unique slugs
+// const generateUniqueSlug = async (name) => {
+//   const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+//   let uniqueSlug = baseSlug;
+//   let counter = 1;
+
+//   while (await Product.exists({ slug: uniqueSlug })) {
+//     uniqueSlug = `${baseSlug}-${counter}`;
+//     counter++;
+//   }
+
+//   return uniqueSlug;
+// };

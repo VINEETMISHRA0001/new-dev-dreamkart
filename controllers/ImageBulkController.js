@@ -1,41 +1,28 @@
+const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const AdmZip = require('adm-zip');
-const cloudinary = require('cloudinary').v2;
 const Image = require('../models/ImageBulkMode');
 
-exports.bulkImageUpload = async (req, res) => {
-  const extractDir = path.join(__dirname, '../../uploads');
+const storage = multer.memoryStorage(); // Store files in memory
+const upload = multer({ storage: storage }).array('images'); // Handle multiple images
 
+exports.bulkImageUpload = async (req, res) => {
+  const uploadDir = path.join(__dirname, '../../uploads');
   try {
     const images = [];
 
-    // Validate if a ZIP file was uploaded
-    if (
-      !req.file ||
-      path.extname(req.file.originalname).toLowerCase() !== '.zip'
-    ) {
-      return res
-        .status(400)
-        .json({ message: 'Please upload a valid .zip file.' });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No images uploaded.' });
     }
 
-    // Ensure the directory for extracted files exists
-    if (!fs.existsSync(extractDir)) {
-      fs.mkdirSync(extractDir);
+    // Ensure the upload directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
     }
 
-    // Extract ZIP file contents
-    const zip = new AdmZip(req.file.path);
-    zip.extractAllTo(extractDir, true);
-
-    // Process extracted files
-    const extractedFiles = fs
-      .readdirSync(extractDir)
-      .map((file) => path.join(extractDir, file));
-
-    for (const file of extractedFiles) {
-      const extname = path.extname(file).toLowerCase();
+    // Process each uploaded image
+    for (const file of req.files) {
+      const extname = path.extname(file.originalname).toLowerCase();
       const validExtensions = [
         '.jpg',
         '.jpeg',
@@ -46,41 +33,31 @@ exports.bulkImageUpload = async (req, res) => {
       ];
 
       if (!validExtensions.includes(extname)) {
-        console.log(`Skipping non-image file: ${file}`);
+        console.log(`Skipping non-image file: ${file.originalname}`);
         continue;
       }
 
-      try {
-        // Upload image to Cloudinary
-        const uploadResult = await cloudinary.uploader.upload(file, {
-          folder: 'catalog-images', // Customize the Cloudinary folder
-        });
+      const filePath = path.join(uploadDir, file.originalname);
 
-        // Save image details to the database
-        const newImage = await Image.create({
-          name: uploadResult.public_id,
-          url: uploadResult.secure_url,
-          uploadedAt: new Date(),
-        });
+      // Save the file to the filesystem
+      fs.writeFileSync(filePath, file.buffer);
 
-        images.push(newImage);
+      // Save image details to the database
+      const newImage = await Image.create({
+        name: file.originalname,
+        url: filePath, // URL will be the local path for now
+        uploadedAt: new Date(),
+      });
 
-        // Remove the local file after successful upload
-        fs.unlinkSync(file);
-        console.log(`Uploaded and saved image: ${newImage.url}`);
-      } catch (err) {
-        console.error(`Error uploading file (${file}):`, err.message);
-      }
+      images.push(newImage);
+      console.log(`Uploaded and saved image: ${newImage.url}`);
     }
 
-    // Clean up the uploaded ZIP file
-    fs.unlinkSync(req.file.path);
-
-    // Handle case where no images were processed
+    // Handle case where no valid images were processed
     if (images.length === 0) {
       return res
         .status(400)
-        .json({ message: 'No valid images found in the ZIP file.' });
+        .json({ message: 'No valid images found in the upload.' });
     }
 
     res.status(200).json({ message: 'Images uploaded successfully', images });
@@ -90,11 +67,6 @@ exports.bulkImageUpload = async (req, res) => {
       .status(500)
       .json({ message: 'Error uploading images', error: error.message });
   } finally {
-    // Ensure cleanup of leftover files in the extract directory
-    if (fs.existsSync(extractDir)) {
-      fs.readdirSync(extractDir).forEach((file) =>
-        fs.unlinkSync(path.join(extractDir, file))
-      );
-    }
+    // Clean up uploaded files if necessary (optional)
   }
 };
