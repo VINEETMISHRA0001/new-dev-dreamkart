@@ -57,7 +57,7 @@ const server = http.createServer(app);
 app.use(helmet());
 
 // General middleware
-app.use(express.json({ limit: '10mb' })); // Limit JSON body size
+app.use(express.json({ limit: '20mb' })); // Limit JSON body size
 app.use(cookieParser());
 app.use(cors());
 

@@ -9,12 +9,72 @@ const deleteFile = (filePath) => {
   }
 };
 
+// exports.createCategory = async (req, res) => {
+//   try {
+//     const { name, description, metaTitle, metaDescription, metaKeywords } =
+//       req.body;
+
+//     // Check if an image file is uploaded
+//     if (!req.file) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: 'Image is required' });
+//     }
+
+//     console.log('Uploaded file:', req.file);
+
+//     // Define the uploads directory
+//     const uploadsDir = path.join(__dirname, '../../uploads/categories');
+
+//     // Use a safe writable directory
+//     if (!fs.existsSync(uploadsDir)) {
+//       fs.mkdirSync(uploadsDir, { recursive: true });
+//     }
+
+//     // Save the file in the uploads directory
+//     const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
+//     const filePath = path.join(uploadsDir, uniqueFilename);
+
+//     // Write the file to the directory
+//     fs.writeFileSync(filePath, req.file.buffer);
+
+//     // Save the relative path of the image to the database
+//     const relativeFilePath = `uploads/categories/${uniqueFilename}`;
+
+//     // Create and save the category document
+//     const category = new Category({
+//       name,
+//       description,
+//       image: relativeFilePath, // Save relative path to the database
+//       metaTitle,
+//       metaDescription,
+//       metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
+//     });
+
+//     const savedCategory = await category.save();
+
+//     // Respond with success
+//     res.status(201).json({
+//       success: true,
+//       message: 'Category created successfully',
+//       category: savedCategory,
+//     });
+//   } catch (error) {
+//     console.error('Error creating category:', error.message);
+
+//     res.status(500).json({
+//       success: false,
+//       message: 'Internal Server Error',
+//       error: error.message,
+//     });
+//   }
+// };
+
 exports.createCategory = async (req, res) => {
   try {
     const { name, description, metaTitle, metaDescription, metaKeywords } =
       req.body;
 
-    // Check if an image file is uploaded
     if (!req.file) {
       return res
         .status(400)
@@ -26,26 +86,28 @@ exports.createCategory = async (req, res) => {
     // Define the uploads directory
     const uploadsDir = path.join(__dirname, '../../uploads/categories');
 
-    // Use a safe writable directory
+    // Ensure the uploads directory exists
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Save the file in the uploads directory
+    // Generate a unique filename
     const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
     const filePath = path.join(uploadsDir, uniqueFilename);
 
-    // Write the file to the directory
+    // Write file to disk
     fs.writeFileSync(filePath, req.file.buffer);
 
-    // Save the relative path of the image to the database
+    console.log('File saved at:', filePath);
+
+    // Save relative file path to database
     const relativeFilePath = `uploads/categories/${uniqueFilename}`;
 
     // Create and save the category document
     const category = new Category({
       name,
       description,
-      image: relativeFilePath, // Save relative path to the database
+      image: relativeFilePath,
       metaTitle,
       metaDescription,
       metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
@@ -53,7 +115,6 @@ exports.createCategory = async (req, res) => {
 
     const savedCategory = await category.save();
 
-    // Respond with success
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
@@ -61,7 +122,6 @@ exports.createCategory = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating category:', error.message);
-
     res.status(500).json({
       success: false,
       message: 'Internal Server Error',
