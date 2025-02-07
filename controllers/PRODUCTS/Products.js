@@ -8,53 +8,101 @@ const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
 // Multer configuration for file uploads
 
 // Create a new product
+// exports.createProduct = async (req, res) => {
+//   try {
+//     const productData = { ...req.body };
+
+//     // Parse comboOf and images
+//     if (req.body['Combo Of']) {
+//       productData.comboOf = req.body['Combo Of'].split(',');
+//     }
+//     if (req.body['Images']) {
+//       productData.images = req.body['Images'].split(',');
+//     }
+
+//     // Parse variations
+//     // Handle variations (colors and sizes)
+//     if (req.body.variations) {
+//       try {
+//         productData.variations =
+//           typeof req.body.variations === 'string'
+//             ? JSON.parse(req.body.variations)
+//             : req.body.variations; // If already an object, assign directly
+//       } catch (err) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid JSON format in 'variations'",
+//           error: err.message,
+//         });
+//       }
+//     }
+
+//     // Validate required fields
+//     if (!productData.name || !productData.price || !productData.thirdCategory) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Missing required fields: name, price, or thirdCategory',
+//       });
+//     }
+
+//     // Create and save the product
+//     const product = new Product(productData);
+//     await product.save();
+
+//     res.status(201).json({ success: true, product });
+//   } catch (error) {
+//     console.error('Error in createProduct:', error.message);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error creating product',
+//       error: error.message,
+//     });
+//   }
+// };
+
 exports.createProduct = async (req, res) => {
   try {
-    const productData = { ...req.body };
+    // declare required fields
+    const requiredfields = [
+      'name',
+      'mrp',
+      'price',
+      'inventory',
+      'thirdCategory',
+    ];
 
-    // Parse comboOf and images
-    if (req.body['Combo Of']) {
-      productData.comboOf = req.body['Combo Of'].split(',');
-    }
-    if (req.body['Images']) {
-      productData.images = req.body['Images'].split(',');
-    }
+    // step1. get Product Data from body
+    const productData = req.body;
 
-    // Parse variations
-    // Handle variations (colors and sizes)
-    if (req.body.variations) {
-      try {
-        productData.variations =
-          typeof req.body.variations === 'string'
-            ? JSON.parse(req.body.variations)
-            : req.body.variations; // If already an object, assign directly
-      } catch (err) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid JSON format in 'variations'",
-          error: err.message,
-        });
-      }
-    }
+    // step2. validate the data which is required
+    const missingFields = requiredfields.filter((field) => !productData[field]);
 
-    // Validate required fields
-    if (!productData.name || !productData.price || !productData.thirdCategory) {
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Missing required fields: name, price, or thirdCategory',
+        message: `Missing fields: ${missingFields.join(', ')}`,
       });
     }
 
-    // Create and save the product
+    // step3: Handle file uploads
+    if (req.files) {
+      productData.images = req.files.map((file) =>
+        file.buffer.toString('base64')
+      );
+    }
+
+    // step4. save the product to database
     const product = new Product(productData);
     await product.save();
 
-    res.status(201).json({ success: true, product });
+    res.status(201).json({
+      message: 'Product Created Successfully',
+      product: product,
+    });
   } catch (error) {
-    console.error('Error in createProduct:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error creating product',
+      message: 'Internal Server Error',
       error: error.message,
     });
   }

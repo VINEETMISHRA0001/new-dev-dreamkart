@@ -1,6 +1,27 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
 
+const variations = new mongoose.Schema({
+  color: {
+    type: String,
+  },
+
+  colorImages: [
+    {
+      type: String,
+    },
+  ],
+
+  sizes: [
+    {
+      size: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
+});
+
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
@@ -48,18 +69,7 @@ const productSchema = new mongoose.Schema(
     careInstructions: { type: String }, // E.g., Do not bleach, Iron on low heat
     images: [{ type: String }], // Main images for the product
     videos: [{ type: String }], // Video URLs showcasing the product
-    variations: [
-      {
-        color: { type: String, required: true },
-        colorImages: [{ type: String }], // Images specific to the color
-        sizes: [
-          {
-            size: { type: String, required: true }, // E.g., S, M, L, XL
-            inventory: { type: Number, default: 0 },
-          },
-        ],
-      },
-    ],
+    variations: [variations],
     skuId: { type: String, required: true, unique: true }, // Stock Keeping Unit ID
     seoTitle: { type: String },
     seoDescription: { type: String },
