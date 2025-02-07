@@ -2,6 +2,8 @@ const Category = require('../../models/CATEGORIES/CategoriesSchema');
 const path = require('path');
 const fs = require('fs');
 
+const os = require('os');
+
 // Helper function to delete a file
 const deleteFile = (filePath) => {
   if (fs.existsSync(filePath)) {
@@ -83,10 +85,10 @@ exports.createCategory = async (req, res) => {
 
     console.log('Uploaded file:', req.file);
 
-    // Define the uploads directory
-    const uploadsDir = path.join(__dirname, '../../uploads/categories');
+    // Use /tmp/ instead of /var/task/uploads/categories/
+    const uploadsDir = path.join(os.tmpdir(), 'categories');
 
-    // Ensure the uploads directory exists
+    // Ensure the directory exists
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
@@ -95,19 +97,19 @@ exports.createCategory = async (req, res) => {
     const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
     const filePath = path.join(uploadsDir, uniqueFilename);
 
-    // Write file to disk
+    // Write the file to /tmp/
     fs.writeFileSync(filePath, req.file.buffer);
 
     console.log('File saved at:', filePath);
 
-    // Save relative file path to database
-    const relativeFilePath = `uploads/categories/${uniqueFilename}`;
+    // Save the temporary file path to the database
+    const relativeFilePath = `/tmp/categories/${uniqueFilename}`;
 
     // Create and save the category document
     const category = new Category({
       name,
       description,
-      image: relativeFilePath,
+      image: relativeFilePath, // Store temp file path
       metaTitle,
       metaDescription,
       metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
