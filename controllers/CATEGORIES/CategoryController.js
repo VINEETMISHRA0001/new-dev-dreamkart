@@ -186,6 +186,32 @@ exports.updateCategory = async (req, res) => {
 };
 
 // Delete Category
+// exports.deleteCategory = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const category = await Category.findById(id);
+//     if (!category) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: 'Category not found' });
+//     }
+
+//     // Delete the image from local storage if it exists
+//     if (category.image) {
+//       deleteFile(path.join(__dirname, '../../', category.image));
+//     }
+
+//     await category.deleteOne();
+//     res
+//       .status(200)
+//       .json({ success: true, message: 'Category deleted successfully' });
+//   } catch (error) {
+//     console.error('Error deleting category:', error.message);
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 exports.deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -197,9 +223,15 @@ exports.deleteCategory = async (req, res) => {
         .json({ success: false, message: 'Category not found' });
     }
 
-    // Delete the image from local storage if it exists
-    if (category.image) {
-      deleteFile(path.join(__dirname, '../../', category.image));
+    // Delete the image only if it's in the writable `/tmp/` directory
+    if (category.image && category.image.startsWith('/tmp/')) {
+      const imagePath = category.image;
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+        console.log('Image deleted:', imagePath);
+      }
+    } else {
+      console.log('Skipping image deletion (read-only file system)');
     }
 
     await category.deleteOne();
