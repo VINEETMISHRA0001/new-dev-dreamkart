@@ -1,19 +1,37 @@
-const Address = require("./../models/AdressSchema");
-const AppError = require("./../utils/AppError");
-const CatchAsyncError = require("./../utils/CatchAsyncErrorjs");
+const Address = require('./../models/AdressSchema');
+const AppError = require('./../utils/AppError');
+const CatchAsyncError = require('./../utils/CatchAsyncErrorjs');
 
 // Add Address
 exports.addAddress = CatchAsyncError(async (req, res, next) => {
-  const { addressLine1, addressLine2, city, state, country, postalCode } =
-    req.body;
+  const {
+    firstName,
+    lastName,
+    addressLine1,
+    addressLine2,
+    city,
+    state,
+    country,
+    postalCode,
+  } = req.body;
 
   // Ensure all required fields are provided
-  if (!addressLine1 || !city || !state || !country || !postalCode) {
-    return next(new AppError("All required fields must be provided.", 400));
+  if (
+    !firstName ||
+    !lastName ||
+    !addressLine1 ||
+    !city ||
+    !state ||
+    !country ||
+    !postalCode
+  ) {
+    return next(new AppError('All required fields must be provided.', 400));
   }
 
   const address = new Address({
     userId: req.user.id,
+    firstName,
+    lastName,
     addressLine1,
     addressLine2,
     city,
@@ -25,8 +43,8 @@ exports.addAddress = CatchAsyncError(async (req, res, next) => {
   await address.save();
 
   res.status(201).json({
-    status: "success",
-    message: "Address added successfully",
+    status: 'success',
+    message: 'Address added successfully',
     address,
   });
 });
@@ -43,7 +61,7 @@ exports.editAddress = CatchAsyncError(async (req, res, next) => {
     userId: req.user.id,
   });
   if (!address) {
-    return next(new AppError("Address not found.", 404));
+    return next(new AppError('Address not found.', 404));
   }
 
   // Update address fields only if they are provided
@@ -57,8 +75,8 @@ exports.editAddress = CatchAsyncError(async (req, res, next) => {
   await address.save();
 
   res.status(200).json({
-    status: "success",
-    message: "Address updated successfully",
+    status: 'success',
+    message: 'Address updated successfully',
     address,
   });
 });
@@ -68,8 +86,8 @@ exports.viewAddresses = CatchAsyncError(async (req, res, next) => {
   const addresses = await Address.find({ userId: req.user.id });
 
   res.status(200).json({
-    status: "success",
-    message: "Addresses retrieved successfully",
+    status: 'success',
+    message: 'Addresses retrieved successfully',
     addresses,
   });
 });
@@ -86,11 +104,11 @@ exports.deleteAddress = CatchAsyncError(async (req, res, next) => {
   });
 
   if (!address) {
-    return next(new AppError("Address not found.", 404));
+    return next(new AppError('Address not found.', 404));
   }
 
   res.status(200).json({
-    status: "success",
-    message: "Address deleted successfully",
+    status: 'success',
+    message: 'Address deleted successfully',
   });
 });

@@ -46,6 +46,7 @@ const topWear = require('./routes/topWearRoutes');
 const commonfields = require('./routes/commonFields');
 const bottomWear = require('./routes/bottomWearRoutes');
 const codeRoutes = require('./routes/Code');
+const reviewRoutes = require('./routes/review');
 // Environment configuration
 dotenv.config();
 connectDB();
@@ -59,7 +60,15 @@ app.use(helmet());
 // General middleware
 app.use(express.json({ limit: '20mb' })); // Limit JSON body size
 app.use(cookieParser());
-app.use(cors());
+
+app.use(
+  cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'], // Allow frontend origin
+    credentials: true, // Allow cookies & auth headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allow required methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow necessary headers
+  })
+);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -113,6 +122,7 @@ app.use('/api/v1/testimonials', testimonialRoutes);
 app.use('/api/v1/socialmedia', socialMediaRoutes);
 app.use('/api/v1/add-users', addedUserRoutes);
 app.use('/api/v1/home-settings', homesettingRoutes);
+app.use('/api/v1/review', reviewRoutes);
 // app.use('/api/v1/top-wear', topWear);
 // app.use('/api/v1/bottom-wear', bottomWear);
 // app.use('/api/v1/common-fields', commonfields);

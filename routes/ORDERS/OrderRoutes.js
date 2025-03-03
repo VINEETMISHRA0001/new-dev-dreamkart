@@ -10,6 +10,7 @@ const {
   markOrdersAsViewed,
   getOrdersByUserId,
   generateDailyReport,
+  getOrdersByStatus,
 } = require('../../controllers/ORDERS/OrderController');
 const authenticateUser = require('../../middlewares/AuthMiddleware');
 const {
@@ -21,10 +22,11 @@ const router = express.Router();
 
 // Define the POST route to place an order
 router.get('/generate-daily-report', generateDailyReport);
-router.get('/all', getAllOrders);
+router.get('/all', authenticateAdmin, getAllOrders);
 router.get('/all/admin', authenticateAdmin, getAllOrdersAdmin);
 router.get('/all/excell', exportInExcell);
 router.get('/:orderId/status', authenticateUser, getOrderStatus);
+router.get('/shipping', authenticateAdmin, getOrdersByStatus);
 // 1. Daily Revenue Endpoint
 router.get('/revenue-daily', async (req, res) => {
   const { start_date, end_date } = req.query;
@@ -148,7 +150,7 @@ router.post('/place-order', authenticateUser, placeOrder);
 router.patch('/:orderId/update-order', authenticateAdmin, updateOrderStatus);
 // Get recent orders for notifications
 router.get('/recent', getRecentOrders);
-router.get('/:userId', getOrdersByUserId);
+router.get('/me', authenticateUser, getOrdersByUserId);
 // Route to generate and download the daily report in Excel
 // Mark orders as viewed
 router.post('/mark-viewed', markOrdersAsViewed);

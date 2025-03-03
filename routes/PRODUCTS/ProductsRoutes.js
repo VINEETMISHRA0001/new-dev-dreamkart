@@ -71,8 +71,9 @@
 const express = require('express');
 const productController = require('../../controllers/PRODUCTS/Products'); // Adjust path as needed
 const upload = require('../../middlewares/MULTER/newMulter');
-const newupload = require('../../controllers/PRODUCTS/Products');
+// const newupload = require('../../controllers/PRODUCTS/Products');
 const uploadExcel = require('../../newExcell');
+const Product = require('../../models/PRODUCTS/Products');
 
 const router = express.Router();
 
@@ -86,6 +87,40 @@ router.post(
 );
 // Get all products
 router.get('/', productController.getAllProducts);
+router.get('/new', productController.getNewProducts);
+router.get('/festive', productController.getByOccassion);
+router.get('/grouped/:id', async (req, res) => {
+  try {
+    const { id } = req.params; // Get the product ID from params
+
+    // Check if ID is a valid ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid product ID' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Product not found' });
+    }
+
+    // Find similar products based on category, fabric, pattern, and occasion
+    const similarProducts = await Product.find({
+      _id: { $ne: product._id }, // Exclude the current product
+      thirdCategory: product.thirdCategory,
+      fabric: product.fabric,
+      pattern: product.pattern,
+      occasion: product.occasion,
+    });
+
+    res.json({ success: true, product, similarProducts });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // Get a product by ID
 router.get('/:id', productController.getProductById);

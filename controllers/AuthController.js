@@ -89,7 +89,7 @@ exports.verifyOTP = CatchAsyncErrorjs(async (req, res, next) => {
 
     // Generate a JWT token for the user
     const token = jwt.sign(
-      { id: user._id, email },
+      { id: user._id, email: user.email }, // Include email in the token payload
       process.env.JWT_SECRET_KEY,
       { expiresIn: '1h' }
     );
@@ -102,9 +102,11 @@ exports.verifyOTP = CatchAsyncErrorjs(async (req, res, next) => {
       maxAge: 60 * 60 * 1000, // Cookie expiry (1 hour)
     });
 
-    res
-      .status(200)
-      .json({ message: 'User successfully registered and verified', token });
+    res.status(200).json({
+      message: 'User successfully registered and verified',
+      token,
+      email: user.email, // Send email in the response
+    });
   } catch (error) {
     // Pass the error to the global error handler
     next(error);

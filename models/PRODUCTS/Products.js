@@ -40,6 +40,12 @@ const productSchema = new mongoose.Schema(
     length: { type: String }, // E.g., Knee-length, Ankle-length
     neck: { type: String }, // E.g., Round Neck, V-Neck
     occasion: { type: String }, // E.g., Casual, Festive, Office Wear
+    styleByOccasion: {
+      type: String,
+      enum: ['Haldi', 'Mehndi', 'Sangeet', 'Bridesmaid', 'Other'],
+      required: true,
+    },
+    isNewLaunch: { type: Boolean, default: false }, // New Launch Flag
     ornamentation: { type: String }, // Embroidery, Mirror Work, etc.
     pattern: { type: String }, // E.g., Printed, Solid, Striped
     sleeveLength: { type: String }, // E.g., Full, Three-quarter, Sleeveless

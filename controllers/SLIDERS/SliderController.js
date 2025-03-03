@@ -57,41 +57,47 @@ exports.uploadSliderImage = upload.single('image');
 
 exports.createSlider = async (req, res) => {
   try {
-    if (!req.file) {
+    // if (!req.file) {
+    //   return res
+    //     .status(400)
+    //     .json({ success: false, error: 'No file uploaded' });
+    // }
+
+    if (!req.body.imageUrl) {
       return res
         .status(400)
         .json({ success: false, error: 'No file uploaded' });
     }
 
     // Upload image to Cloudinary from buffer
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { resource_type: 'image' },
-        (error, uploadedResult) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(uploadedResult);
-          }
-        }
-      );
-      stream.end(req.file.buffer);
-    });
+    // const result = await new Promise((resolve, reject) => {
+    //   const stream = cloudinary.uploader.upload_stream(
+    //     { resource_type: 'image' },
+    //     (error, uploadedResult) => {
+    //       if (error) {
+    //         reject(error);
+    //       } else {
+    //         resolve(uploadedResult);
+    //       }
+    //     }
+    //   );
+    //   stream.end(req.file.buffer);
+    // });
 
-    // Ensure Cloudinary upload returns the required fields
-    if (!result || !result.public_id || !result.secure_url) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to upload image to Cloudinary',
-      });
-    }
+    // // Ensure Cloudinary upload returns the required fields
+    // if (!result || !result.public_id || !result.secure_url) {
+    //   return res.status(500).json({
+    //     success: false,
+    //     error: 'Failed to upload image to Cloudinary',
+    //   });
+    // }
 
     // Create a new slider with imageUrl, cloudinaryId, and URL
     const slider = new Slider({
       title: req.body.title,
       description: req.body.description,
-      cloudinaryId: result.public_id, // Store Cloudinary public ID
-      imageUrl: result.secure_url, // Store Cloudinary secure URL
+      // cloudinaryId: result.public_id, // Store Cloudinary public ID
+      imageUrl: req.body.imageUrl, // Store Cloudinary secure URL
       url: req.body.url, // Add URL from the request body
     });
 

@@ -74,45 +74,58 @@ const deleteFile = (filePath) => {
 
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description, metaTitle, metaDescription, metaKeywords } =
-      req.body;
+    const {
+      name,
+      description,
+      metaTitle,
+      metaDescription,
+      metaKeywords,
+      image,
+    } = req.body;
 
-    if (!req.file) {
+    // if (!req.file || !req.image) {
+    //   return res
+    //     .status(400)
+    //     .json({ success: false, message: 'Image is required' });
+    // }
+
+    if (!req.body.image) {
       return res
         .status(400)
         .json({ success: false, message: 'Image is required' });
     }
 
-    console.log('Uploaded file:', req.file);
+    // console.log('Uploaded file:', req.file);
 
     // Use /tmp/ instead of /var/task/uploads/categories/
-    const uploadsDir = path.join(os.tmpdir(), 'categories');
+    // const uploadsDir = path.join(os.tmpdir(), 'categories');
 
     // Ensure the directory exists
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    // if (!fs.existsSync(uploadsDir)) {
+    //   fs.mkdirSync(uploadsDir, { recursive: true });
+    // }
 
     // Generate a unique filename
-    const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
-    const filePath = path.join(uploadsDir, uniqueFilename);
+    // const uniqueFilename = `${Date.now()}-${req.file.originalname}`;
+    // const filePath = path.join(uploadsDir, uniqueFilename);
 
     // Write the file to /tmp/
-    fs.writeFileSync(filePath, req.file.buffer);
+    // fs.writeFileSync(filePath, req.file.buffer);
 
-    console.log('File saved at:', filePath);
+    // console.log('File saved at:', filePath);
 
     // Save the temporary file path to the database
-    const relativeFilePath = `/tmp/categories/${uniqueFilename}`;
+    // const relativeFilePath = `/tmp/categories/${uniqueFilename}`;
 
     // Create and save the category document
     const category = new Category({
       name,
       description,
-      image: relativeFilePath, // Store temp file path
+      // image: relativeFilePath, // Store temp file path
+      image: image, // Store temp file path
       metaTitle,
       metaDescription,
-      metaKeywords: metaKeywords ? metaKeywords.split(',') : [],
+      metaKeywords: metaKeywords,
     });
 
     const savedCategory = await category.save();

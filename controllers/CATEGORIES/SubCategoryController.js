@@ -6,23 +6,24 @@ const fs = require('fs');
 // Create Subcategory
 exports.createSubcategory = async (req, res) => {
   try {
-    const { name, parentCategory, description } = req.body;
-    let imagePath = null;
+    const { name, parentCategory, description, image } = req.body;
+    // let imagePath = null;
 
-    // Check if a file is provided
-    if (req.file) {
-      const fileName = `${Date.now()}-${req.file.originalname}`;
-      const uploadPath = path.join(__dirname, '../../uploads', fileName);
-      fs.writeFileSync(uploadPath, req.file.buffer); // Save the file to the uploads folder
-      imagePath = `/uploads/${fileName}`; // Save the relative path to the image
-    }
+    // // Check if a file is provided
+    // if (req.file) {
+    //   const fileName = `${Date.now()}-${req.file.originalname}`;
+    //   const uploadPath = path.join(__dirname, '../../uploads', fileName);
+    //   fs.writeFileSync(uploadPath, req.file.buffer); // Save the file to the uploads folder
+    //   imagePath = `/uploads/${fileName}`; // Save the relative path to the image
+    // }
 
     // Create a new subcategory
     const subcategory = new Subcategory({
       name,
       parentCategory,
       description,
-      image: imagePath,
+      // image: imagePath,
+      image: image,
     });
 
     // Save to the database
@@ -119,8 +120,9 @@ exports.getSubcategoriesByCategoryId = async (req, res) => {
 
     // Check if no subcategories were found
     if (subcategories.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
+        subcategories: [],
         message: 'No subcategories found for this category',
       });
     }

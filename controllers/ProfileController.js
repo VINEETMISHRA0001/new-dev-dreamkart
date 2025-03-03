@@ -1,7 +1,7 @@
-const User = require("../models/UserSchema");
-const CatchAsyncErrorjs = require("../utils/CatchAsyncErrorjs");
-const UserProfile = require("./../models/ProfileSchema"); // Ensure the path is correct
-const AppError = require("./../utils/AppError"); // Custom AppError for handling application errors
+const User = require('../models/UserSchema');
+const CatchAsyncErrorjs = require('../utils/CatchAsyncErrorjs');
+const UserProfile = require('./../models/ProfileSchema'); // Ensure the path is correct
+const AppError = require('./../utils/AppError'); // Custom AppError for handling application errors
 
 // Create user profile details
 // Create user profile details
@@ -18,18 +18,18 @@ exports.createProfile = CatchAsyncErrorjs(async (req, res, next) => {
 
   // Check if all required fields are provided
   if (!firstName || !lastName || !mobileNumber || !dateOfBirth || !country) {
-    return next(new AppError("All required fields must be provided.", 400));
+    return next(new AppError('All required fields must be provided.', 400));
   }
 
   // Validate if the user is authenticated and verified
   if (!req.user || !req.user.isVerified) {
-    return next(new AppError("User is not verified or authenticated.", 403));
+    return next(new AppError('User is not verified or authenticated.', 403));
   }
 
   // Check if a profile already exists for the user
   const existingProfile = await UserProfile.findOne({ userId: req.user.id });
   if (existingProfile) {
-    return next(new AppError("Profile already exists.", 400));
+    return next(new AppError('Profile already exists.', 400));
   }
 
   // Create the new profile
@@ -47,8 +47,8 @@ exports.createProfile = CatchAsyncErrorjs(async (req, res, next) => {
   await userProfile.save();
 
   res.status(201).json({
-    status: "success",
-    message: "Profile created successfully.",
+    status: 'success',
+    message: 'Profile created successfully.',
     profile: userProfile,
   });
 });
@@ -67,13 +67,13 @@ exports.updateProfile = CatchAsyncErrorjs(async (req, res, next) => {
 
   // Validate if the user is authenticated and verified
   if (!req.user || !req.user.isVerified) {
-    return next(new AppError("User is not verified or authenticated.", 403));
+    return next(new AppError('User is not verified or authenticated.', 403));
   }
 
   // Find the user profile
   const userProfile = await UserProfile.findOne({ userId: req.user.id });
   if (!userProfile) {
-    return next(new AppError("Profile not found.", 404));
+    return next(new AppError('Profile not found.', 404));
   }
 
   // Update the profile fields only if they are provided
@@ -90,8 +90,8 @@ exports.updateProfile = CatchAsyncErrorjs(async (req, res, next) => {
   await userProfile.save();
 
   res.status(200).json({
-    status: "success",
-    message: "Profile updated successfully.",
+    status: 'success',
+    message: 'Profile updated successfully.',
     profile: userProfile,
   });
 });
@@ -101,19 +101,19 @@ exports.updateProfile = CatchAsyncErrorjs(async (req, res, next) => {
 exports.getProfileDetails = CatchAsyncErrorjs(async (req, res, next) => {
   // Validate if the user is authenticated
   if (!req.user) {
-    return next(new AppError("User is not authenticated.", 401));
+    return next(new AppError('User is not authenticated.', 401));
   }
 
   // Fetch the user's profile based on their ID
   const userProfile = await UserProfile.findOne({ userId: req.user.id });
 
   if (!userProfile) {
-    return next(new AppError("Profile not found.", 404));
+    return next(new AppError('Profile not found.', 404));
   }
 
   res.status(200).json({
-    status: "success",
-    message: "Profile retrieved successfully.",
+    status: 'success',
+    message: 'Profile retrieved successfully.',
     profile: userProfile,
   });
 });
@@ -134,12 +134,12 @@ exports.addToRecentlyViewed = CatchAsyncErrorjs(async (req, res) => {
     }
 
     res.status(200).json({
-      message: "Product added to recently viewed",
+      message: 'Product added to recently viewed',
       recentlyViewed: user.recentlyViewed,
     });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error updating recently viewed products", error });
+      .json({ message: 'Error updating recently viewed products', error });
   }
 });

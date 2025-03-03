@@ -12,7 +12,7 @@ const router = express.Router();
 
 // Routes for Address
 router.post('/add', authenticateUser, addAddress); // Add address
-router.put('/edit/:addressId', authenticateUser, editAddress); // Edit address by ID
+router.post('/edit/:addressId', authenticateUser, editAddress); // Edit address by ID
 router.get('/view', authenticateUser, viewAddresses); // View all addresses
 router.delete('/delete/:addressId', authenticateUser, deleteAddress); // View all addresses
 

@@ -1,7 +1,7 @@
 // controllers/WISHLIST/WishlistController.js
-const Wishlist = require("../../models/WISHLIST/WishlistModel");
-const AppError = require("../../utils/AppError");
-const CatchAsyncErrorjs = require("../../utils/CatchAsyncErrorjs");
+const Wishlist = require('../../models/WISHLIST/WishlistModel');
+const AppError = require('../../utils/AppError');
+const CatchAsyncErrorjs = require('../../utils/CatchAsyncErrorjs');
 
 exports.addToWishlist = CatchAsyncErrorjs(async (req, res, next) => {
   try {
@@ -14,14 +14,14 @@ exports.addToWishlist = CatchAsyncErrorjs(async (req, res, next) => {
       productId,
     });
     if (existingWishlistItem) {
-      return next(new AppError("Product is already in your wishlist", 400));
+      return next(new AppError('Product is already in your wishlist', 400));
     }
 
     // Create a new wishlist item
     const wishlistItem = await Wishlist.create({ userId, productId });
 
     res.status(201).json({
-      status: "success",
+      status: 'success',
       data: {
         wishlistItem,
       },
@@ -33,25 +33,76 @@ exports.addToWishlist = CatchAsyncErrorjs(async (req, res, next) => {
 
 // GET ALL WISHLIST PRODUCTS
 
+// exports.getWishlist = CatchAsyncErrorjs(async (req, res, next) => {
+//   try {
+//     const userId = req.user.id; // Assuming the user is authenticated
+
+//     // Find all wishlist items for the user and populate essential product details
+//     const wishlistItems = await Wishlist.find({ userId }).populate({
+//       path: 'productId',
+//       select: 'name images price sizes colors description stock category', // Selecting only necessary fields
+//     });
+
+//     res.status(200).json({
+//       status: 'success',
+//       results: wishlistItems.length,
+//       data: {
+//         wishlistItems,
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 exports.getWishlist = CatchAsyncErrorjs(async (req, res, next) => {
   try {
-    const userId = req.user.id; // Assuming the user is authenticated
+    const userId = req.user.id; // Assuming authenticated user
 
-    // Find all wishlist items for the user and populate the product details
-    const wishlistItems = await Wishlist.find({ userId }).populate("productId");
+    // Fetch wishlist and populate user email & product details
+    const wishlist = await Wishlist.find({ userId })
+      .populate({
+        path: 'userId',
+        select: 'email', // Fetch only email from User model
+      })
+      .populate({
+        path: 'productId',
+        select: '_id name price images variations slug', // Fetch product details
+      });
+
+    if (!wishlist.length) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'No wishlist items found',
+        data: [],
+      });
+    }
+
+    // Format response
+    const formattedWishlist = wishlist.map((item) => ({
+      _id: item._id,
+      userEmail: item.userId?.email || null, // Handle missing user
+      productId: item.productId
+        ? {
+            _id: item.productId._id,
+            name: item.productId.name,
+            price: item.productId.price,
+            images: item.productId.images,
+            variations: item.productId.variations,
+            slug: item.productId.slug,
+          }
+        : null, // Handle missing product
+      createdAt: item.createdAt,
+    }));
 
     res.status(200).json({
-      status: "success",
-      results: wishlistItems.length,
-      data: {
-        wishlistItems,
-      },
+      status: 'success',
+      data: formattedWishlist,
     });
   } catch (error) {
     next(error);
   }
 });
-
 // REMOVE FROM WISHLIST
 
 exports.removeFromWishlist = CatchAsyncErrorjs(async (req, res, next) => {
@@ -63,11 +114,11 @@ exports.removeFromWishlist = CatchAsyncErrorjs(async (req, res, next) => {
     const removedItem = await Wishlist.findOneAndDelete({ userId, productId });
 
     if (!removedItem) {
-      return next(new AppError("No product found in your wishlist", 404));
+      return next(new AppError('No product found in your wishlist', 404));
     }
 
     res.status(204).json({
-      status: "success",
+      status: 'success',
       data: null,
     });
   } catch (error) {

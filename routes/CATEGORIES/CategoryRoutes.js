@@ -5,7 +5,8 @@ const upload = require('../../uploads/multer');
 const router = express.Router();
 
 // Route to create a category
-router.post('/', upload.single('image'), categoryController.createCategory);
+// router.post('/', upload.single('image'), categoryController.createCategory);
+router.post('/', categoryController.createCategory);
 
 // Route to get all categories
 router.get('/', categoryController.getCategories);

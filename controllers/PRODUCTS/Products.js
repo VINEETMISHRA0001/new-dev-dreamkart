@@ -4,6 +4,7 @@ const ExcelJS = require('exceljs');
 const multer = require('multer');
 const path = require('path');
 const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
+const { default: slugify } = require('slugify');
 
 // Multer configuration for file uploads
 
@@ -62,8 +63,8 @@ const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
 
 exports.createProduct = async (req, res) => {
   try {
-    // declare required fields
-    const requiredfields = [
+    // Required fields validation
+    const requiredFields = [
       'name',
       'mrp',
       'price',
@@ -71,11 +72,8 @@ exports.createProduct = async (req, res) => {
       'thirdCategory',
     ];
 
-    // step1. get Product Data from body
     const productData = req.body;
-
-    // step2. validate the data which is required
-    const missingFields = requiredfields.filter((field) => !productData[field]);
+    const missingFields = requiredFields.filter((field) => !productData[field]);
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -84,20 +82,39 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    // step3: Handle file uploads
+    // Validate occasion
+    const validOccasions = ['Haldi', 'Mehndi', 'Sangeet', 'Bridesmaid'];
+    if (
+      productData.styleByOccasion &&
+      !validOccasions.includes(productData.styleByOccasion)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Invalid occasion type. Allowed values: Haldi, Mehndi, Sangeet, Bridesmaid.',
+      });
+    }
+
+    // Convert "isNewLaunch" to Boolean if provided
+    if (productData.isNewLaunch !== undefined) {
+      productData.isNewLaunch = productData.isNewLaunch === 'true';
+    }
+
+    // Handle file uploads
     if (req.files) {
       productData.images = req.files.map((file) =>
         file.buffer.toString('base64')
       );
     }
 
-    // step4. save the product to database
+    // Save product
     const product = new Product(productData);
     await product.save();
 
     res.status(201).json({
+      success: true,
       message: 'Product Created Successfully',
-      product: product,
+      product,
     });
   } catch (error) {
     res.status(500).json({
@@ -122,6 +139,49 @@ exports.getAllProducts = async (req, res) => {
     res.status(200).json({ success: true, products: updatedProducts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getNewProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ isNewLaunch: true }).populate(
+      'thirdCategory'
+    );
+
+    // Map products to include stock status
+    const updatedProducts = products.map((product) => ({
+      ...product._doc, // Spread all existing fields of the product
+      stockStatus: product.inventory < 1 ? 'Out of Stock' : 'In Stock',
+    }));
+
+    res.status(200).json({ success: true, products: updatedProducts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get all products by occassion
+exports.getByOccassion = async (req, res) => {
+  try {
+    const { occasion, newLaunch } = req.query;
+    let filter = {};
+
+    if (occasion) {
+      filter.styleByOccasion = occasion;
+    }
+
+    if (newLaunch === 'true') {
+      filter.isNewLaunch = true;
+    }
+
+    const products = await Product.find(filter);
+    res.json({ success: true, products });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
   }
 };
 
@@ -208,22 +268,24 @@ const generateErrorReport = (errors, res) => {
 
 exports.excelUploadController = async (req, res) => {
   try {
-    const { thirdCategory } = req.body; // Selected third category ID
-    const file = req.file; // The file sent by multer
+    const { thirdCategory } = req.body;
+    const file = req.file; // File uploaded using Multer
 
+    // Validate request
     if (!thirdCategory) {
       return res.status(400).json({ message: 'Third category is required.' });
     }
-
     if (!file) {
       return res.status(400).json({ message: 'No file uploaded.' });
     }
 
-    const workbook = xlsx.read(file.buffer, { type: 'buffer' }); // Reading from buffer
+    // Read Excel file from buffer
+    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
     const sheetData = xlsx.utils.sheet_to_json(
       workbook.Sheets[workbook.SheetNames[0]]
     );
 
+    // Validate category existence
     const category = await ThirdCategory.findById(thirdCategory);
     if (!category) {
       return res.status(400).json({ message: 'Invalid third category ID.' });
@@ -236,30 +298,20 @@ exports.excelUploadController = async (req, res) => {
       const errorMessages = [];
 
       // Validate required fields
-      if (!row['SKU_ID']) {
-        errorMessages.push('SKU_ID is required');
-      }
-      if (!row['Product Name']) {
-        errorMessages.push('Product Name is required');
-      }
-      if (!row['Price'] || isNaN(row['Price'])) {
-        errorMessages.push('Price is required and must be a valid number');
-      }
-      if (!row['MRP'] || isNaN(row['MRP'])) {
-        errorMessages.push('MRP is required and must be a valid number');
-      }
+      if (!row['SKU_ID']) errorMessages.push('SKU_ID is required');
+      if (!row['Product Name']) errorMessages.push('Product Name is required');
+      if (!row['Price'] || isNaN(row['Price']))
+        errorMessages.push('Price must be a valid number');
+      if (!row['MRP'] || isNaN(row['MRP']))
+        errorMessages.push('MRP must be a valid number');
 
-      // Skip if errors found
       if (errorMessages.length > 0) {
         errors.push({ row: index + 2, errors: errorMessages.join(', ') });
         continue;
       }
 
-      // Check if SKU_ID already exists
-      const existingProduct = await Product.findOne({
-        skuId: row['SKU_ID'],
-      });
-
+      // Check for existing SKU
+      const existingProduct = await Product.findOne({ skuId: row['SKU_ID'] });
       if (existingProduct) {
         errors.push({
           row: index + 2,
@@ -268,20 +320,18 @@ exports.excelUploadController = async (req, res) => {
         continue;
       }
 
-      // Generate slug for the product (await the result)
-      const slug = await generateUniqueSlug(row['Product Name']);
+      // Generate a unique slug
+      const slug = slugify(row['Product Name'], { lower: true, strict: true });
 
       // Prepare product data
       const productData = {
         name: row['Product Name'],
         shortDescription: row['Short Description'] || '',
         longDescription: row['Long Description'] || '',
-        styleId: row['Style ID'] || '',
         mrp: parseFloat(row['MRP']),
         price: parseFloat(row['Price']),
         discount: parseFloat(row['Discount']) || 0,
         gst: parseFloat(row['GST']) || 0,
-        hsnCode: row['HSN Code'] || '',
         inventory: parseInt(row['Inventory'], 10) || 0,
         comboOf: row['Combo Of']
           ? row['Combo Of'].split(',').map((c) => c.trim())
@@ -291,30 +341,21 @@ exports.excelUploadController = async (req, res) => {
         length: row['Length'] || '',
         neck: row['Neck'] || '',
         occasion: row['Occasion'] || '',
-        ornamentation: row['Ornamentation'] || '',
+        styleByOccasion: row['styleByOccasion'] || '',
         pattern: row['Pattern'] || '',
         sleeveLength: row['Sleeve Length'] || '',
-        sleeveStyling: row['Sleeve Styling'] || '',
-        hemline: row['Hemline'] || '',
-        yokeDesign: row['Yoke Design'] || '',
-        transparency: row['Transparency'] || '',
         fitType: row['Fit Type'] || '',
         weight: parseFloat(row['Weight']) || 0,
         bustSize: parseFloat(row['Bust Size']) || 0,
-        shoulderSize: parseFloat(row['Shoulder Size']) || 0,
         waistSize: parseFloat(row['Waist Size']) || 0,
         hipSize: parseFloat(row['Hip Size']) || 0,
         washingCare: row['Washing Care'] || '',
         closureType: row['Closure Type'] || '',
-        liningMaterial: row['Lining Material'] || '',
         embellishments: row['Embellishments']
           ? row['Embellishments'].split(',').map((e) => e.trim())
           : [],
         thirdCategory,
         countryOfOrigin: row['Country of Origin'] || 'India',
-        manufacturerDetails: row['Manufacturer Details'] || '',
-        packerDetails: row['Packer Details'] || '',
-        importerDetails: row['Importer Details'] || '',
         careInstructions: row['Care Instructions'] || '',
         images: row['Images']
           ? row['Images'].split(',').map((img) => img.trim())
@@ -331,12 +372,13 @@ exports.excelUploadController = async (req, res) => {
         seoKeywords: row['SEO Keywords']
           ? row['SEO Keywords'].split(',').map((kw) => kw.trim())
           : [],
-        slug, // Ensure slug is generated uniquely
+        slug,
       };
 
       validProducts.push(productData);
     }
 
+    // If errors exist, return response with errors
     if (errors.length > 0) {
       return res
         .status(400)
