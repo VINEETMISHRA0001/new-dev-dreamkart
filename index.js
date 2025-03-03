@@ -63,8 +63,8 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    // origin: ['http://localhost:5173', 'http://localhost:5174'], // Allow frontend origin
-    origin: '*',
+    origin: ['http://localhost:5173', 'http://localhost:5174'], // Allow frontend origin
+    // origin: '*',
     credentials: true, // Allow cookies & auth headers
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allow required methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Allow necessary headers
