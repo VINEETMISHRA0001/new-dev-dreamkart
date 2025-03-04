@@ -46,6 +46,7 @@ const topWear = require('./routes/topWearRoutes');
 const commonfields = require('./routes/commonFields');
 const bottomWear = require('./routes/bottomWearRoutes');
 const codeRoutes = require('./routes/Code');
+const videoRoutes = require('./routes/video');
 const reviewRoutes = require('./routes/review');
 // Environment configuration
 dotenv.config();
@@ -124,6 +125,7 @@ app.use('/api/v1/socialmedia', socialMediaRoutes);
 app.use('/api/v1/add-users', addedUserRoutes);
 app.use('/api/v1/home-settings', homesettingRoutes);
 app.use('/api/v1/review', reviewRoutes);
+app.use('/api/v1/dm', videoRoutes);
 // app.use('/api/v1/top-wear', topWear);
 // app.use('/api/v1/bottom-wear', bottomWear);
 // app.use('/api/v1/common-fields', commonfields);

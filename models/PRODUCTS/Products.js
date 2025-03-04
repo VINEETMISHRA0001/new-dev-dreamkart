@@ -68,6 +68,11 @@ const productSchema = new mongoose.Schema(
       ref: 'ThirdCategory',
       required: true,
     },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      // required: true,
+    },
     countryOfOrigin: { type: String, default: 'India' },
     manufacturerDetails: { type: String },
     packerDetails: { type: String },

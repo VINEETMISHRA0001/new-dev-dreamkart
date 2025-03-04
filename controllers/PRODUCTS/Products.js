@@ -5,6 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const ThirdCategory = require('../../models/CATEGORIES/ThirdCategory');
 const { default: slugify } = require('slugify');
+const CategoriesSchema = require('../../models/CATEGORIES/CategoriesSchema');
 
 // Multer configuration for file uploads
 
@@ -129,6 +130,41 @@ exports.createProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate('thirdCategory');
+
+    // Map products to include stock status
+    const updatedProducts = products.map((product) => ({
+      ...product._doc, // Spread all existing fields of the product
+      stockStatus: product.inventory < 1 ? 'Out of Stock' : 'In Stock',
+    }));
+
+    res.status(200).json({ success: true, products: updatedProducts });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get products by category name
+exports.getProductsByCategoryId = async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+
+    if (!categoryId) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Category ID is required' });
+    }
+
+    // Fetch products that belong to the specified category ID
+    const products = await Product.find({ category: categoryId }).populate(
+      'category'
+    );
+
+    if (products.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No products found for this category',
+      });
+    }
 
     // Map products to include stock status
     const updatedProducts = products.map((product) => ({

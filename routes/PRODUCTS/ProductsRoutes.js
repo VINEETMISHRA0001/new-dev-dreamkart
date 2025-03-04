@@ -87,6 +87,7 @@ router.post(
 );
 // Get all products
 router.get('/', productController.getAllProducts);
+router.get('/category', productController.getProductsByCategoryId);
 router.get('/new', productController.getNewProducts);
 router.get('/festive', productController.getByOccassion);
 router.get('/grouped/:id', async (req, res) => {
