@@ -48,6 +48,7 @@ const bottomWear = require('./routes/bottomWearRoutes');
 const codeRoutes = require('./routes/Code');
 const videoRoutes = require('./routes/video');
 const reviewRoutes = require('./routes/review');
+const newsRoutes = require('./routes/newsletter');
 // Environment configuration
 dotenv.config();
 connectDB();
@@ -126,6 +127,7 @@ app.use('/api/v1/add-users', addedUserRoutes);
 app.use('/api/v1/home-settings', homesettingRoutes);
 app.use('/api/v1/review', reviewRoutes);
 app.use('/api/v1/dm', videoRoutes);
+app.use('/api/v1/newsletter', newsRoutes);
 // app.use('/api/v1/top-wear', topWear);
 // app.use('/api/v1/bottom-wear', bottomWear);
 // app.use('/api/v1/common-fields', commonfields);

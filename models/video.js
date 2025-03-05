@@ -1,34 +1,21 @@
 const mongoose = require('mongoose');
 
-const videoSchema = new mongoose.Schema(
+const VideoSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       required: true,
-      trim: true,
     },
-    videoUrl: {
+    url: {
       type: String,
       required: true,
-    },
-    description: {
-      type: String,
-      trim: true,
+      unique: true,
     },
     thumbnail: {
-      type: String, // Store URL of the thumbnail image
-    },
-
-    views: {
-      type: Number,
-      default: 0,
-    },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+      type: String, // Will store the YouTube thumbnail URL
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Video', videoSchema);
+module.exports = mongoose.model('Video', VideoSchema);
